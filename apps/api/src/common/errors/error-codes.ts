@@ -14,6 +14,20 @@ export const ERROR_CATALOG = {
   FORBIDDEN: { status: HttpStatus.FORBIDDEN, title: 'Forbidden' },
   NOT_FOUND: { status: HttpStatus.NOT_FOUND, title: 'Not found' },
   EMAIL_ALREADY_REGISTERED: { status: HttpStatus.CONFLICT, title: 'Email already registered' },
+  ACCOUNT_NOT_FOUND: { status: HttpStatus.NOT_FOUND, title: 'Account not found' },
+  ACCOUNT_NOT_ACTIVE: { status: HttpStatus.UNPROCESSABLE_ENTITY, title: 'Account not active' },
+  CURRENCY_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, title: 'Currency mismatch' },
+  INSUFFICIENT_FUNDS: { status: HttpStatus.UNPROCESSABLE_ENTITY, title: 'Insufficient funds' },
+  DEPOSITS_DISABLED: { status: HttpStatus.FORBIDDEN, title: 'Deposits disabled' },
+  DAILY_DEPOSIT_LIMIT_EXCEEDED: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    title: 'Daily deposit limit exceeded',
+  },
+  /** A bug: the code tried to post a journal that breaks double-entry rules. */
+  LEDGER_INVARIANT_VIOLATION: {
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    title: 'Ledger invariant violation',
+  },
   INTERNAL_ERROR: { status: HttpStatus.INTERNAL_SERVER_ERROR, title: 'Internal server error' },
 } as const satisfies Record<string, { status: HttpStatus; title: string }>;
 

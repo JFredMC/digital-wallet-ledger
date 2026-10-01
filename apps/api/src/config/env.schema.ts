@@ -62,6 +62,16 @@ export const envSchema = databaseSchema.extend({
   COOKIE_SECURE: booleanFromString('true'),
   AUTH_MAX_FAILED_LOGINS: z.coerce.number().int().min(1).max(100).default(5),
   AUTH_LOCK_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+
+  // --- Demo deposits (sandbox top-ups) ---
+  DEMO_DEPOSITS_ENABLED: booleanFromString('true'),
+  /** Max amount a user can top up in any rolling 24 h window, in minor units. */
+  DEMO_DEPOSIT_DAILY_LIMIT_MINOR: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(100_000_000),
 });
 
 export type Env = z.infer<typeof envSchema>;

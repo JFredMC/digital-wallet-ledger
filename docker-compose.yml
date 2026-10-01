@@ -39,6 +39,8 @@ services:
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
       # Local compose is served over plain http; use 'true' behind HTTPS.
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DEMO_DEPOSITS_ENABLED: ${DEMO_DEPOSITS_ENABLED:-true}
+      DEMO_DEPOSIT_DAILY_LIMIT_MINOR: ${DEMO_DEPOSIT_DAILY_LIMIT_MINOR:-100000000}
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:

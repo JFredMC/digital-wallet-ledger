@@ -122,6 +122,16 @@ jobs:
             -d '{"email":"smoke@example.com","password":"Smoke-passw0rd","fullName":"Smoke Test"}' \
             | jq -er .accessToken)
           curl -fsS http://localhost:4200/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
+          echo
+          # Registration opened a COP wallet; top it up and check the balance.
+          WALLET_ID=$(curl -fsS http://localhost:4200/api/v1/accounts \
+            -H "Authorization: Bearer $TOKEN" | jq -er '.[0].id')
+          curl -fsS -X POST http://localhost:4200/api/v1/deposits \
+            -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+            -d "{\"accountId\":\"$WALLET_ID\",\"amountMinor\":5000000}" \
+            | jq -e '.balanceAfterMinor == 5000000'
+          curl -fsS "http://localhost:4200/api/v1/accounts/$WALLET_ID" \
+            -H "Authorization: Bearer $TOKEN" | jq -e '.balanceMinor == 5000000'
 
       - name: Logs on failure
         if: failure()

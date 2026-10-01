@@ -22,5 +22,9 @@ NestJS 11 + TypeORM + PostgreSQL. Global prefix: `/api/v1`.
 - `src/modules/health/` — `GET /api/v1/health` (Terminus, database ping).
 - `src/modules/users/` — `users` entity/service (citext email, failed-login counter + temporary lock).
 - `src/modules/auth/` — register/login/refresh/logout/me, argon2id passwords, JWT access tokens, rotating refresh tokens with reuse detection ([ADR 0001](../../docs/adr/0001-jwt-access-and-rotating-refresh-tokens.md)).
+- `src/common/money/` — `bigint` ⇄ `BIGINT` transformer and JSON-safe integer conversion (amounts are always minor units).
+- `src/modules/ledger/` — double-entry journal + append-only ledger lines. `LedgerService.post()` is the only writer of ledger rows and balances; it locks accounts `FOR UPDATE` in id order. The database backs it up with append-only and balanced-journal triggers ([ADR 0002](../../docs/adr/0002-double-entry-ledger.md)).
+- `src/modules/accounts/` — wallets (opened in the registration transaction), `GET /accounts`, `GET /accounts/:id` (owner only), recipient lookup with masked data.
+- `src/modules/deposits/` — sandbox top-ups (`DEBIT SYSTEM_FUNDING / CREDIT wallet`) with a rolling 24 h limit.
 - Swagger UI at `/api/docs` (OpenAPI JSON at `/api/docs-json`).
-- Remaining module folders (`accounts`, `ledger`, `transfers`, ...) are reserved per [`docs/STRUCTURE.md`](../../docs/STRUCTURE.md).
+- Remaining module folders (`transfers`, `idempotency`, ...) are reserved per [`docs/STRUCTURE.md`](../../docs/STRUCTURE.md).

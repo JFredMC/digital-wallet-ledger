@@ -1,4 +1,6 @@
 import { ConfigService } from '@nestjs/config';
+import type { DataSource, EntityManager } from 'typeorm';
+import type { AccountsService } from '../accounts/accounts.service';
 import { DomainError } from '../../common/errors/domain-error';
 import type { User } from '../users/entities/user.entity';
 import type { UsersService } from '../users/users.service';
@@ -48,13 +50,20 @@ function setup() {
   const config = {
     get: jest.fn((key: string) => ({ AUTH_MAX_FAILED_LOGINS: 5, AUTH_LOCK_MINUTES: 15 })[key]),
   };
+  const manager = { name: 'tx-manager' } as unknown as EntityManager;
+  const dataSource = {
+    transaction: jest.fn((work: (m: EntityManager) => Promise<unknown>) => work(manager)),
+  };
+  const accounts = { openWallet: jest.fn().mockResolvedValue({ id: 'wallet-1' }) };
   const service = new AuthService(
     users as unknown as UsersService,
     passwords,
     tokens as unknown as TokenService,
     config as unknown as ConfigService<never, true>,
+    dataSource as unknown as DataSource,
+    accounts as unknown as AccountsService,
   );
-  return { service, users, passwords, tokens };
+  return { service, users, passwords, tokens, accounts, dataSource, manager };
 }
 
 const expectInvalidCredentials = (promise: Promise<unknown>) =>
@@ -62,8 +71,8 @@ const expectInvalidCredentials = (promise: Promise<unknown>) =>
 
 describe('AuthService', () => {
   describe('register', () => {
-    it('stores only the password hash and starts a session', async () => {
-      const { service, users, passwords, tokens } = setup();
+    it('creates user + COP wallet in one transaction, stores only the hash and starts a session', async () => {
+      const { service, users, passwords, tokens, accounts, dataSource, manager } = setup();
       users.create.mockResolvedValue(user());
 
       const result = await service.register(
@@ -72,11 +81,12 @@ describe('AuthService', () => {
       );
 
       expect(passwords.hash).toHaveBeenCalledWith('S3cure-passw0rd');
-      expect(users.create).toHaveBeenCalledWith({
-        email: 'ana@example.com',
-        fullName: 'Ana Gómez',
-        passwordHash: '$argon2id$hash',
-      });
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(users.create).toHaveBeenCalledWith(
+        { email: 'ana@example.com', fullName: 'Ana Gómez', passwordHash: '$argon2id$hash' },
+        manager,
+      );
+      expect(accounts.openWallet).toHaveBeenCalledWith(manager, 'user-1', 'COP');
       expect(tokens.issueRefreshToken).toHaveBeenCalledWith('user-1', meta);
       expect(result.refreshToken).toBe(refreshToken);
       expect(result.body).toEqual({
@@ -94,13 +104,26 @@ describe('AuthService', () => {
       expect(JSON.stringify(result.body)).not.toContain('argon2');
     });
 
-    it('propagates duplicate-email errors', async () => {
-      const { service, users } = setup();
+    it('does not open a wallet nor a session when the email is taken', async () => {
+      const { service, users, accounts, tokens } = setup();
       users.create.mockRejectedValue(new DomainError('EMAIL_ALREADY_REGISTERED'));
 
       await expect(
         service.register({ email: 'a@b.co', password: 'x1234567', fullName: 'Ana' }, meta),
       ).rejects.toMatchObject({ code: 'EMAIL_ALREADY_REGISTERED' });
+      expect(accounts.openWallet).not.toHaveBeenCalled();
+      expect(tokens.issueRefreshToken).not.toHaveBeenCalled();
+    });
+
+    it('fails the whole registration if the wallet cannot be opened', async () => {
+      const { service, users, accounts, tokens } = setup();
+      users.create.mockResolvedValue(user());
+      accounts.openWallet.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.register({ email: 'a@b.co', password: 'x1234567', fullName: 'Ana' }, meta),
+      ).rejects.toThrow('db down');
+      expect(tokens.issueRefreshToken).not.toHaveBeenCalled();
     });
   });
 

@@ -26,7 +26,7 @@ describe('Health (e2e)', () => {
     expect(res.headers['x-request-id']).toBe('trace-12345678');
   });
 
-  it('serves the OpenAPI document with the auth endpoints', async () => {
+  it('serves the OpenAPI document with every endpoint', async () => {
     const res = await request(ctx.app.getHttpServer()).get('/api/docs-json').expect(200);
     expect(Object.keys(res.body.paths)).toEqual(
       expect.arrayContaining([
@@ -35,6 +35,10 @@ describe('Health (e2e)', () => {
         '/api/v1/auth/refresh',
         '/api/v1/auth/logout',
         '/api/v1/auth/me',
+        '/api/v1/accounts',
+        '/api/v1/accounts/lookup',
+        '/api/v1/accounts/{id}',
+        '/api/v1/deposits',
       ]),
     );
     expect(res.body.components.securitySchemes).toHaveProperty('bearer');

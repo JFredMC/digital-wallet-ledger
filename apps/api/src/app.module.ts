@@ -5,8 +5,11 @@ import { ProblemDetailsFilter } from './common/filters/problem-details.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { validateEnv } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
+import { AccountsModule } from './modules/accounts/accounts.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DepositsModule } from './modules/deposits/deposits.module';
 import { HealthModule } from './modules/health/health.module';
+import { LedgerModule } from './modules/ledger/ledger.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -22,6 +25,9 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     UsersModule,
     AuthModule,
+    AccountsModule,
+    LedgerModule,
+    DepositsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },

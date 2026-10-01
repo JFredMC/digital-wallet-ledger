@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 import { DomainError } from '../../common/errors/domain-error';
+import { DEFAULT_CURRENCY } from '../../common/money/currency';
 import type { Env } from '../../config/env.schema';
+import { AccountsService } from '../accounts/accounts.service';
 import { UserDto } from '../users/dto/user.dto';
 import type { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
@@ -25,14 +28,20 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly tokens: TokenService,
     private readonly config: ConfigService<Env, true>,
+    private readonly dataSource: DataSource,
+    private readonly accounts: AccountsService,
   ) {}
 
+  /** Creates the user and their COP wallet in ONE transaction: both or neither. */
   async register(dto: RegisterDto, meta: ClientMeta): Promise<AuthResult> {
     const passwordHash = await this.passwords.hash(dto.password);
-    const user = await this.users.create({
-      email: dto.email,
-      fullName: dto.fullName,
-      passwordHash,
+    const user = await this.dataSource.transaction(async (manager) => {
+      const created = await this.users.create(
+        { email: dto.email, fullName: dto.fullName, passwordHash },
+        manager,
+      );
+      await this.accounts.openWallet(manager, created.id, DEFAULT_CURRENCY);
+      return created;
     });
     return this.startSession(user, meta);
   }

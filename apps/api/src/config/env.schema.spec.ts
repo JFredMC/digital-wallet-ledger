@@ -16,6 +16,8 @@ describe('validateEnv', () => {
     expect(env.REFRESH_TOKEN_TTL_DAYS).toBe(7);
     expect(env.COOKIE_SECURE).toBe(true);
     expect(env.AUTH_MAX_FAILED_LOGINS).toBe(5);
+    expect(env.DEMO_DEPOSITS_ENABLED).toBe(true);
+    expect(env.DEMO_DEPOSIT_DAILY_LIMIT_MINOR).toBe(100_000_000);
   });
 
   it('parses and coerces provided values', () => {
