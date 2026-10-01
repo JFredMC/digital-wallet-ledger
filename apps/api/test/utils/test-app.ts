@@ -27,4 +27,11 @@ export async function resetDatabase(dataSource: DataSource): Promise<void> {
   if (rows.length === 0) return;
   const tables = rows.map(({ tablename }) => `"${tablename}"`).join(', ');
   await dataSource.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+  await dataSource.query('ALTER SEQUENCE account_number_seq RESTART');
+  // Re-create the system accounts seeded by the migration.
+  await dataSource.query(`
+    INSERT INTO accounts (number, type, currency) VALUES
+      ('9000-0000-0001', 'SYSTEM_FUNDING', 'COP'),
+      ('9000-0000-0002', 'SYSTEM_FEES', 'COP')
+  `);
 }
