@@ -1,0 +1,62 @@
+:host {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 1fr 1fr;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  background: var(--gradient);
+  color: #fff;
+}
+
+.hero h1 {
+  font-size: 2.2rem;
+}
+
+.hero ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+  opacity: 0.92;
+}
+
+.panel {
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.form-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.brand-mobile {
+  display: none;
+  margin-bottom: 1rem;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 860px) {
+  :host {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    display: none;
+  }
+
+  .brand-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}

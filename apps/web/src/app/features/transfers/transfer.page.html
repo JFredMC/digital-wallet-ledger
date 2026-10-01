@@ -1,0 +1,182 @@
+<div class="page page-narrow">
+  <header class="page-header">
+    <h1>Transferir</h1>
+    <p class="muted">Envía dinero a otra billetera al instante.</p>
+  </header>
+
+  <ol class="steps" aria-label="Pasos">
+    <li [class.on]="step() === 'recipient'">1. Destinatario</li>
+    <li [class.on]="step() === 'amount'">2. Monto</li>
+    <li [class.on]="step() === 'confirm' || step() === 'done'">3. Confirmar</li>
+  </ol>
+
+  @switch (step()) {
+    @case ('recipient') {
+      <form class="card" [formGroup]="recipientForm" (ngSubmit)="search()" novalidate>
+        <div class="segmented" role="group" aria-label="Buscar por">
+          <button
+            type="button"
+            class="chip"
+            [attr.aria-pressed]="mode() === 'number'"
+            (click)="setMode('number')"
+          >
+            Número de cuenta
+          </button>
+          <button
+            type="button"
+            class="chip"
+            [attr.aria-pressed]="mode() === 'alias'"
+            (click)="setMode('alias')"
+          >
+            Llave (alias)
+          </button>
+        </div>
+        <div class="field">
+          <label for="recipient">{{ mode() === 'number' ? 'Número de cuenta' : 'Llave' }}</label>
+          <input
+            id="recipient"
+            class="input mono"
+            formControlName="value"
+            [attr.inputmode]="mode() === 'number' ? 'numeric' : 'text'"
+            [placeholder]="mode() === 'number' ? '1000-0000-0000' : '@usuario'"
+            autocomplete="off"
+          />
+          @if (recipientForm.controls.value.touched && recipientForm.controls.value.invalid) {
+            <span class="field-error">
+              {{
+                mode() === 'number'
+                  ? 'El número tiene 12 dígitos, por ejemplo 1000-0000-0042.'
+                  : 'Ingresa una llave válida.'
+              }}
+            </span>
+          }
+        </div>
+        <app-problem-alert [problem]="problem()" />
+        <button type="submit" class="btn btn-primary btn-block" [disabled]="busy()">
+          <app-icon name="search" [size]="18" />{{ busy() ? 'Buscando…' : 'Buscar destinatario' }}
+        </button>
+      </form>
+    }
+
+    @case ('amount') {
+      @if (recipient(); as r) {
+        <form class="card" [formGroup]="amountForm" (ngSubmit)="review()" novalidate>
+          <div class="recipient" data-testid="recipient">
+            <span class="avatar">{{ r.lookup.holderName.charAt(0) }}</span>
+            <div class="spacer">
+              <strong>{{ r.lookup.holderName }}</strong>
+              <div class="small muted mono">Cuenta {{ r.lookup.accountNumber }}</div>
+            </div>
+            <button type="button" class="btn btn-ghost small" (click)="back('recipient')">
+              Cambiar
+            </button>
+          </div>
+
+          <div class="field">
+            <label for="amount">Monto (COP)</label>
+            <input
+              id="amount"
+              class="input input-money mono"
+              formControlName="amount"
+              inputmode="decimal"
+              placeholder="$ 0"
+              autocomplete="off"
+            />
+            @if (
+              amountForm.controls.amount.touched && amountForm.controls.amount.errors;
+              as errors
+            ) {
+              <span class="field-error">
+                @if (errors['required']) {
+                  Ingresa un monto.
+                } @else if (errors['copMax']) {
+                  Saldo insuficiente. Tienes {{ store.balanceMinor() | cop }} disponibles.
+                } @else {
+                  Ingresa un monto válido, por ejemplo 25.000 o 25.000,50.
+                }
+              </span>
+            } @else {
+              <span class="hint">Disponible: {{ store.balanceMinor() | cop }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="description">Mensaje (opcional)</label>
+            <input
+              id="description"
+              class="input"
+              formControlName="description"
+              maxlength="140"
+              placeholder="Ej. Almuerzo"
+            />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Continuar</button>
+        </form>
+      }
+    }
+
+    @case ('confirm') {
+      @if (recipient(); as r) {
+        <section class="card stack" aria-labelledby="confirm-title">
+          <h2 id="confirm-title">Confirma la transferencia</h2>
+          <div class="summary">
+            <div class="muted small">Vas a enviar</div>
+            <div class="mono amount-lg" data-testid="confirm-amount">{{ amountMinor() | cop }}</div>
+            <div class="muted small">
+              a <strong>{{ r.lookup.holderName }}</strong> · cuenta {{ r.lookup.accountNumber }}
+            </div>
+            @if (description()) {
+              <div class="small">“{{ description() }}”</div>
+            }
+          </div>
+          <app-problem-alert [problem]="problem()" [showRetry]="true" (retry)="send()" />
+          <div class="row">
+            <button
+              type="button"
+              class="btn btn-ghost"
+              (click)="back('amount')"
+              [disabled]="busy()"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary spacer"
+              (click)="send()"
+              [disabled]="busy()"
+            >
+              {{ busy() ? 'Enviando…' : 'Confirmar y enviar' }}
+            </button>
+          </div>
+        </section>
+      }
+    }
+
+    @case ('done') {
+      @if (result(); as t) {
+        <section class="card stack" data-testid="transfer-success" aria-live="polite">
+          <div class="alert alert-success">¡Transferencia exitosa!</div>
+          <div class="summary">
+            <div class="mono amount-lg">{{ t.amountMinor | cop }}</div>
+            <div class="muted small">
+              a {{ t.recipient.holderName }} · cuenta {{ t.recipient.accountNumber }}
+            </div>
+          </div>
+          <dl class="receipt small">
+            <dt>Fecha</dt>
+            <dd>{{ when() }}</dd>
+            <dt>Nuevo saldo</dt>
+            <dd class="mono">{{ t.balanceAfterMinor | cop }}</dd>
+            <dt>Comprobante</dt>
+            <dd class="mono">{{ t.id.slice(0, 8).toUpperCase() }}</dd>
+          </dl>
+          <div class="row">
+            <button type="button" class="btn btn-ghost" (click)="restart()">
+              Nueva transferencia
+            </button>
+            <a routerLink="/movimientos" class="btn btn-primary spacer">Ver movimientos</a>
+          </div>
+        </section>
+      }
+    }
+  }
+</div>

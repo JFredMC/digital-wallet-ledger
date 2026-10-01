@@ -1,0 +1,77 @@
+<div class="page page-narrow">
+  <header class="page-header">
+    <h1>Depositar</h1>
+    <p class="muted">Recarga dinero de prueba en tu billetera.</p>
+  </header>
+
+  @if (result(); as deposit) {
+    <section class="card stack" data-testid="deposit-success" aria-live="polite">
+      <div class="alert alert-success">¡Depósito exitoso!</div>
+      <div>
+        <div class="muted small">Monto depositado</div>
+        <div class="mono amount-lg">
+          {{ deposit.amountMinor | cop }}
+        </div>
+      </div>
+      <div class="row small">
+        <span class="muted spacer">Nuevo saldo</span>
+        <strong class="mono">{{ deposit.balanceAfterMinor | cop }}</strong>
+      </div>
+      <div class="row">
+        <button type="button" class="btn btn-ghost" (click)="another()">Hacer otro depósito</button>
+        <a routerLink="/inicio" class="btn btn-primary">Ir al inicio</a>
+      </div>
+    </section>
+  } @else {
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <p class="alert alert-info small">
+        Depósito simulado: el dinero es ficticio. Límite: $ 1.000.000 cada 24 horas.
+      </p>
+
+      <div class="field">
+        <label for="amount">Monto (COP)</label>
+        <input
+          id="amount"
+          class="input input-money mono"
+          formControlName="amount"
+          inputmode="decimal"
+          placeholder="$ 0"
+          autocomplete="off"
+        />
+        @if (form.controls.amount.touched && form.controls.amount.errors; as errors) {
+          <span class="field-error">
+            @if (errors['required']) {
+              Ingresa un monto.
+            } @else {
+              Ingresa un monto válido, por ejemplo 50.000 o 50.000,50.
+            }
+          </span>
+        }
+        <div class="row" role="group" aria-label="Montos rápidos">
+          @for (quick of quickAmounts; track quick) {
+            <button
+              type="button"
+              class="chip"
+              [attr.aria-pressed]="isPicked(quick)"
+              (click)="pick(quick)"
+            >
+              {{ quick | cop }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="description">Descripción (opcional)</label>
+        <input id="description" class="input" formControlName="description" maxlength="140" />
+      </div>
+
+      <app-problem-alert [problem]="problem()" [showRetry]="true" (retry)="submit()" />
+
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="submitting()">
+        {{ submitting() ? 'Depositando…' : 'Depositar' }}
+      </button>
+      <p class="hint">Saldo actual: {{ store.balanceMinor() | cop }}</p>
+    </form>
+  }
+</div>
