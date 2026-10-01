@@ -1,0 +1,30 @@
+{
+  "name": "digital-wallet-ledger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Digital wallet with double-entry ledger, P2P transfers and idempotency — NestJS, PostgreSQL, Angular",
+  "license": "MIT",
+  "author": "Jhon Maquilon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JFredMC/digital-wallet-ledger.git"
+  },
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=24.11.0",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter api --filter web run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "test:e2e": "pnpm --filter api run test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  }
+}

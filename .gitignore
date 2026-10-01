@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+out-tsc/
+build/
+tmp/
+.angular/
+.nx/
+
+# Tests / coverage
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+/libpeerconnection.log
+testem.log
+/typings
+
+# Env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.sw?
+*.sublime-workspace
+.history/
