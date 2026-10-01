@@ -11,6 +11,7 @@ import {
   text,
   typeInto,
 } from '../../../testing/fixtures';
+import { DEMO_MODE } from '../../core/demo/demo-mode';
 import { LoginPage } from './login.page';
 
 describe('LoginPage', () => {
@@ -82,8 +83,54 @@ describe('LoginPage', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/inicio');
   });
 
+  it('shows no demo hint when talking to the real API', async () => {
+    const fixture = await render();
+    expect(query(fixture, '[data-testid="demo-hint"]')).toBeNull();
+  });
+
   it('explains an expired session', async () => {
     const fixture = await render({ sesion: 'expirada' });
     expect(text(fixture.nativeElement as HTMLElement)).toMatch(/sesión expiró/i);
+  });
+
+  describe('demo build', () => {
+    const credentials = [
+      { fullName: 'Ana María Gómez', email: 'ana@billetera.demo', password: 'Demo1234' },
+      { fullName: 'Luis Alberto Pérez', email: 'luis@billetera.demo', password: 'Demo1234' },
+    ];
+
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [LoginPage],
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideRouter([]),
+          { provide: DEMO_MODE, useValue: { credentials, reset: vi.fn() } },
+        ],
+      });
+      http = TestBed.inject(HttpTestingController);
+    });
+
+    it('lists the sample accounts and fills the form with "Usar"', async () => {
+      const fixture = await render();
+      const hint = query(fixture, '[data-testid="demo-hint"]');
+      expect(text(hint)).toContain('Demo1234');
+      expect(text(hint)).toContain('luis@billetera.demo');
+
+      const buttons = hint!.querySelectorAll('button');
+      (buttons[1] as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(el<HTMLInputElement>(fixture, '#email').value).toBe('luis@billetera.demo');
+      expect(el<HTMLInputElement>(fixture, '#password').value).toBe('Demo1234');
+    });
+
+    it('confirms a reset', async () => {
+      const fixture = await render({ demo: 'restablecida' });
+      expect(text(fixture.nativeElement as HTMLElement)).toContain(
+        'la demo volvió a sus datos iniciales',
+      );
+    });
   });
 });
