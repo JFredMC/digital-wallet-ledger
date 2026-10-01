@@ -1,30 +1,48 @@
-import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from '../../src/app.module';
-import { configureApp } from '../../src/app.setup';
+import { createTestApp, type TestContext } from '../utils/test-app';
 
-// Requires a reachable PostgreSQL (DATABASE_URL), e.g. `docker compose up -d postgres`.
 describe('Health (e2e)', () => {
-  let app: INestApplication<App>;
+  let ctx: TestContext;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
+    ctx = await createTestApp();
   });
 
   afterAll(async () => {
-    await app.close();
+    await ctx.app.close();
   });
 
-  it('GET /api/v1/health reports the database as up', async () => {
-    const res = await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+  it('GET /api/v1/health is public and reports the database as up', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/api/v1/health').expect(200);
     expect(res.body).toMatchObject({ status: 'ok', info: { database: { status: 'up' } } });
+    expect(res.headers['x-request-id']).toEqual(expect.any(String));
+  });
+
+  it('propagates a well-formed X-Request-Id', async () => {
+    const res = await request(ctx.app.getHttpServer())
+      .get('/api/v1/health')
+      .set('X-Request-Id', 'trace-12345678')
+      .expect(200);
+    expect(res.headers['x-request-id']).toBe('trace-12345678');
+  });
+
+  it('serves the OpenAPI document with the auth endpoints', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/api/docs-json').expect(200);
+    expect(Object.keys(res.body.paths)).toEqual(
+      expect.arrayContaining([
+        '/api/v1/auth/register',
+        '/api/v1/auth/login',
+        '/api/v1/auth/refresh',
+        '/api/v1/auth/logout',
+        '/api/v1/auth/me',
+      ]),
+    );
+    expect(res.body.components.securitySchemes).toHaveProperty('bearer');
+  });
+
+  it('returns RFC 9457 problem details for unknown routes', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/api/v1/nope').expect(404);
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.body).toMatchObject({ status: 404, code: 'NOT_FOUND', instance: '/api/v1/nope' });
   });
 });
