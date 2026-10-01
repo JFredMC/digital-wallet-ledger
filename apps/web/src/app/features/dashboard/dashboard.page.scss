@@ -1,0 +1,74 @@
+.balance-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--gradient);
+  color: #fff;
+  box-shadow: 0 10px 30px rgb(79 70 229 / 30%);
+}
+
+.balance {
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 800;
+}
+
+.account {
+  margin-top: 0.5rem;
+  opacity: 0.92;
+}
+
+.copy {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 18%);
+  color: inherit;
+  cursor: pointer;
+}
+
+.balance-skeleton {
+  display: block;
+  width: 60%;
+  height: 2.75rem;
+  opacity: 0.4;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.action {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 1rem 0.5rem;
+  color: var(--c-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action:hover {
+  border-color: var(--c-primary);
+}
+
+.action-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--c-primary-50);
+  color: var(--c-primary);
+}
+
+.row-skeleton {
+  height: 56px;
+  margin: 0.5rem 0;
+}

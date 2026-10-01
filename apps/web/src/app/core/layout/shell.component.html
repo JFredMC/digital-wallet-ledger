@@ -1,0 +1,40 @@
+<header class="topbar">
+  <div class="topbar-inner">
+    <a routerLink="/inicio" class="brand" aria-label="Billetera, inicio">
+      <span class="brand-mark"><app-icon name="wallet" [size]="18" /></span>
+      <span>Billetera</span>
+    </a>
+    <nav class="nav-desktop" aria-label="Principal">
+      @for (item of nav; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+    <span class="spacer"></span>
+    <span class="user small muted" data-testid="user-name">{{ auth.user()?.fullName }}</span>
+    <button
+      type="button"
+      class="btn btn-ghost logout"
+      (click)="logout()"
+      aria-label="Cerrar sesión"
+    >
+      <app-icon name="logout" [size]="18" /><span class="logout-label">Salir</span>
+    </button>
+  </div>
+</header>
+
+<div class="demo-banner small">Proyecto demo · el dinero es ficticio</div>
+
+<main>
+  <router-outlet />
+</main>
+
+<nav class="nav-mobile" aria-label="Principal">
+  @for (item of nav; track item.path) {
+    <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <app-icon [name]="item.icon" [size]="22" />
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>

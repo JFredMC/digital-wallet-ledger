@@ -1,0 +1,83 @@
+<div class="page">
+  <header class="page-header">
+    <h1>Movimientos</h1>
+    <p class="muted">Todo lo que entra y sale de tu billetera.</p>
+  </header>
+
+  <form
+    class="card filters"
+    [formGroup]="filters"
+    (ngSubmit)="apply()"
+    aria-label="Filtros"
+    novalidate
+  >
+    <div class="field">
+      <label for="f-type">Tipo</label>
+      <select id="f-type" class="input" formControlName="type">
+        <option value="">Todos</option>
+        <option value="DEPOSIT">Depósitos</option>
+        <option value="TRANSFER">Transferencias</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-direction">Dirección</label>
+      <select id="f-direction" class="input" formControlName="direction">
+        <option value="">Entradas y salidas</option>
+        <option value="IN">Entradas</option>
+        <option value="OUT">Salidas</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-from">Desde</label>
+      <input id="f-from" class="input" type="date" formControlName="from" />
+    </div>
+    <div class="field">
+      <label for="f-to">Hasta</label>
+      <input id="f-to" class="input" type="date" formControlName="to" />
+    </div>
+    <div class="field">
+      <label for="f-min">Monto mínimo</label>
+      <input id="f-min" class="input" formControlName="min" inputmode="decimal" placeholder="$ 0" />
+    </div>
+    <div class="field">
+      <label for="f-max">Monto máximo</label>
+      <input id="f-max" class="input" formControlName="max" inputmode="decimal" placeholder="$ 0" />
+    </div>
+    @if (rangeError() || filters.controls.min.invalid || filters.controls.max.invalid) {
+      <p class="field-error full" role="alert">
+        {{ rangeError() ?? 'Ingresa montos válidos, por ejemplo 50.000.' }}
+      </p>
+    }
+    <div class="row full">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" (click)="clear()">Limpiar</button>
+      <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+    </div>
+  </form>
+
+  <app-problem-alert [problem]="problem()" />
+
+  <section class="card" aria-live="polite" [attr.aria-busy]="loading()">
+    @if (loading()) {
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="skeleton row-skeleton"></div>
+      }
+    } @else {
+      @for (tx of items(); track tx.id + tx.direction) {
+        <app-transaction-item [tx]="tx" />
+      } @empty {
+        <p class="muted" data-testid="empty-state">No hay movimientos con estos filtros.</p>
+      }
+      @if (nextCursor()) {
+        <button
+          type="button"
+          class="btn btn-ghost btn-block more"
+          (click)="loadMore()"
+          [disabled]="loadingMore()"
+        >
+          {{ loadingMore() ? 'Cargando…' : 'Cargar más' }}
+        </button>
+      }
+    }
+  </section>
+</div>

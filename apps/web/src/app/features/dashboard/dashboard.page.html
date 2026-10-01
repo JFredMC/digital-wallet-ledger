@@ -1,0 +1,68 @@
+<div class="page">
+  <header class="page-header">
+    <h1>Hola, {{ auth.firstName() }} 👋</h1>
+    <p class="muted">Este es el resumen de tu billetera.</p>
+  </header>
+
+  <app-problem-alert [problem]="store.error() ?? problem()" />
+
+  <section class="balance-card" aria-labelledby="balance-label">
+    @if (store.wallet(); as wallet) {
+      <span id="balance-label" class="small">Saldo disponible</span>
+      <strong class="balance mono" data-testid="balance">{{ wallet.balanceMinor | cop }}</strong>
+      <div class="account row small">
+        <span
+          >Cuenta <span class="mono" data-testid="account-number">{{ wallet.number }}</span></span
+        >
+        <button
+          type="button"
+          class="copy"
+          (click)="copyNumber(wallet.number)"
+          [attr.aria-label]="copied() ? 'Número copiado' : 'Copiar número de cuenta'"
+        >
+          <app-icon [name]="copied() ? 'check' : 'copy'" [size]="16" />
+        </button>
+        <span class="spacer"></span>
+        <span
+          >{{ wallet.currency }} · {{ wallet.status === 'ACTIVE' ? 'Activa' : wallet.status }}</span
+        >
+      </div>
+    } @else {
+      <span id="balance-label" class="small">Saldo disponible</span>
+      <span class="skeleton balance-skeleton"></span>
+    }
+  </section>
+
+  <nav class="actions" aria-label="Acciones rápidas">
+    <a routerLink="/depositar" class="action card">
+      <span class="action-icon"><app-icon name="plus" /></span>Depositar
+    </a>
+    <a routerLink="/transferir" class="action card">
+      <span class="action-icon"><app-icon name="send" /></span>Transferir
+    </a>
+    <a routerLink="/movimientos" class="action card">
+      <span class="action-icon"><app-icon name="list" /></span>Movimientos
+    </a>
+  </nav>
+
+  <section class="card">
+    <div class="row">
+      <h2 class="card-title spacer">Últimos movimientos</h2>
+      <a routerLink="/movimientos" class="small">Ver todos</a>
+    </div>
+    @if (recent(); as items) {
+      @for (tx of items; track tx.id + tx.direction) {
+        <app-transaction-item [tx]="tx" />
+      } @empty {
+        <p class="muted" data-testid="empty-state">
+          Aún no tienes movimientos.
+          <a routerLink="/depositar">Haz tu primer depósito de prueba</a>.
+        </p>
+      }
+    } @else {
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton row-skeleton"></div>
+      }
+    }
+  </section>
+</div>
