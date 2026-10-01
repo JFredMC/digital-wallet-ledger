@@ -10,7 +10,11 @@
     "test": "ng test --watch=false",
     "lint": "ng lint",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.spec.json --noEmit && tsc -p e2e/tsconfig.json",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "dev:demo": "ng serve --configuration demo --port 4300",
+    "build:pages": "ng build --configuration demo && node scripts/pages-postbuild.mjs",
+    "serve:pages": "node scripts/serve-pages.mjs",
+    "e2e:demo": "playwright test --config playwright.demo.config.ts"
   },
   "private": true,
   "dependencies": {
