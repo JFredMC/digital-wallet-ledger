@@ -18,6 +18,15 @@ describe('validateEnv', () => {
     expect(env.AUTH_MAX_FAILED_LOGINS).toBe(5);
     expect(env.DEMO_DEPOSITS_ENABLED).toBe(true);
     expect(env.DEMO_DEPOSIT_DAILY_LIMIT_MINOR).toBe(100_000_000);
+    expect(env.MAX_TRANSFER_MINOR).toBe(500_000_000);
+    expect(env.DAILY_TRANSFER_LIMIT_MINOR).toBe(2_000_000_000);
+    expect(env.IDEMPOTENCY_KEY_TTL_HOURS).toBe(24);
+  });
+
+  it('rejects an out-of-range idempotency TTL', () => {
+    expect(() => validateEnv({ ...base, IDEMPOTENCY_KEY_TTL_HOURS: '0' })).toThrow(
+      /IDEMPOTENCY_KEY_TTL_HOURS/,
+    );
   });
 
   it('parses and coerces provided values', () => {

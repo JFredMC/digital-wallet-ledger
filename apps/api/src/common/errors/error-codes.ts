@@ -23,6 +23,30 @@ export const ERROR_CATALOG = {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     title: 'Daily deposit limit exceeded',
   },
+  RECIPIENT_NOT_FOUND: { status: HttpStatus.NOT_FOUND, title: 'Recipient not found' },
+  SAME_ACCOUNT_TRANSFER: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    title: 'Cannot transfer to the same account',
+  },
+  TRANSFER_LIMIT_EXCEEDED: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    title: 'Transfer limit exceeded',
+  },
+  DAILY_TRANSFER_LIMIT_EXCEEDED: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    title: 'Daily transfer limit exceeded',
+  },
+  IDEMPOTENCY_KEY_REQUIRED: {
+    status: HttpStatus.BAD_REQUEST,
+    title: 'Idempotency-Key header required',
+  },
+  IDEMPOTENCY_KEY_INVALID: { status: HttpStatus.BAD_REQUEST, title: 'Invalid Idempotency-Key' },
+  /** Same key, different request: a client bug, never silently replayed. */
+  IDEMPOTENCY_KEY_REUSED: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    title: 'Idempotency-Key reused with a different request',
+  },
+  INVALID_CURSOR: { status: HttpStatus.BAD_REQUEST, title: 'Invalid pagination cursor' },
   /** A bug: the code tried to post a journal that breaks double-entry rules. */
   LEDGER_INVARIANT_VIOLATION: {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
