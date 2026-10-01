@@ -21,7 +21,7 @@
 
 ---
 
-> 🚧 **Project status — Stage 0 (foundations).** The monorepo, Docker Compose stack, validated configuration, TypeORM baseline migration, `GET /api/v1/health` and CI are in place. The features below describe the planned scope and are being built stage by stage (see the [roadmap](#️-roadmap)).
+> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI) and **authentication** (register/login, JWT access + rotating refresh tokens, Swagger). Next: accounts + double-entry ledger, transfers, Angular screens (see the [roadmap](#️-roadmap)).
 
 ## 📖 About
 
@@ -100,14 +100,14 @@ sequenceDiagram
 
 ## 🛠️ Tech Stack
 
-| Layer    | Technologies                                                                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Backend  | NestJS 11, TypeScript (strict), TypeORM, zod (config), Terminus (health), helmet · _planned:_ class-validator, Passport JWT, argon2, nestjs-pino |
-| Database | PostgreSQL 16 (CHECK constraints, partial indexes, append-only triggers)                                                                         |
-| Frontend | Angular 22 (standalone, signals, zoneless), SCSS · _planned:_ Angular Material                                                                   |
-| Testing  | Jest + Supertest (API), Vitest (web) · _planned:_ Testcontainers, Playwright                                                                     |
-| DevOps   | Docker, Docker Compose, GitHub Actions · _planned:_ Render, Neon, Vercel/Netlify                                                                 |
-| Tooling  | Node.js 24 LTS, pnpm workspaces, ESLint (typescript-eslint, angular-eslint), Prettier · _planned:_ Husky, commitlint                             |
+| Layer    | Technologies                                                                                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend  | NestJS 11, TypeScript (strict), TypeORM, zod (config), class-validator, Passport JWT, argon2, Swagger/OpenAPI, Terminus, helmet · _planned:_ nestjs-pino |
+| Database | PostgreSQL 16 (CHECK constraints, partial indexes, append-only triggers)                                                                                 |
+| Frontend | Angular 22 (standalone, signals, zoneless), SCSS · _planned:_ Angular Material                                                                           |
+| Testing  | Jest + Supertest (API), Vitest (web) · _planned:_ Testcontainers, Playwright                                                                             |
+| DevOps   | Docker, Docker Compose, GitHub Actions · _planned:_ Render, Neon, Vercel/Netlify                                                                         |
+| Tooling  | Node.js 24 LTS, pnpm workspaces, ESLint (typescript-eslint, angular-eslint), Prettier · _planned:_ Husky, commitlint                                     |
 
 ## 🚀 Getting Started
 
@@ -125,12 +125,12 @@ cp .env.example .env          # adjust secrets if needed
 docker compose up --build
 ```
 
-| Service      | URL                                        |
-| ------------ | ------------------------------------------ |
-| Web app      | http://localhost:4200                      |
-| API          | http://localhost:3000/api/v1               |
-| Health check | http://localhost:3000/api/v1/health        |
-| Swagger UI   | http://localhost:3000/api/docs _(planned)_ |
+| Service      | URL                                 |
+| ------------ | ----------------------------------- |
+| Web app      | http://localhost:4200               |
+| API          | http://localhost:3000/api/v1        |
+| Health check | http://localhost:3000/api/v1/health |
+| Swagger UI   | http://localhost:3000/api/docs      |
 
 The API runs pending migrations on start-up (`DATABASE_MIGRATIONS_RUN=true` in Compose). The web container (nginx) proxies `/api/*` to the API, mirroring the same-origin setup used in production.
 
@@ -161,24 +161,28 @@ pnpm dev                      # API on :3000, Angular on :4200 (proxy /api → :
 
 ## 🔑 Environment Variables
 
-| Variable                         | Description                                                   | Example                                          |
-| -------------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
-| `NODE_ENV`                       | Runtime environment                                           | `development`                                    |
-| `PORT`                           | API port                                                      | `3000`                                           |
-| `DATABASE_URL`                   | PostgreSQL connection string (**required**)                   | `postgres://wallet:wallet@localhost:5432/wallet` |
-| `DATABASE_SSL`                   | Enable SSL (required for Neon)                                | `false`                                          |
-| `DATABASE_MIGRATIONS_RUN`        | Run pending migrations on API start-up                        | `false` (local) / `true` (Compose)               |
-| `CORS_ORIGINS`                   | Comma-separated allowed origins                               | `http://localhost:4200`                          |
-| `LOG_LEVEL`                      | Log level                                                     | `info`                                           |
-| `JWT_ACCESS_SECRET`              | _(planned)_ Secret for access tokens (≥ 32 bytes)             | `openssl rand -base64 48`                        |
-| `JWT_ACCESS_TTL`                 | _(planned)_ Access token lifetime                             | `15m`                                            |
-| `REFRESH_TOKEN_TTL_DAYS`         | _(planned)_ Refresh token lifetime                            | `7`                                              |
-| `COOKIE_SECURE`                  | _(planned)_ `Secure` flag on cookies                          | `false` (local) / `true` (prod)                  |
-| `MAX_TRANSFER_MINOR`             | _(planned)_ Max amount per transfer (minor units)             | `500000000`                                      |
-| `DAILY_TRANSFER_LIMIT_MINOR`     | _(planned)_ Daily limit per user (minor units)                | `2000000000`                                     |
-| `DEMO_DEPOSITS_ENABLED`          | _(planned)_ Enable sandbox top-ups                            | `true`                                           |
-| `DEMO_DEPOSIT_DAILY_LIMIT_MINOR` | _(planned)_ Max sandbox top-up per user per day (minor units) | `100000000`                                      |
-| `IDEMPOTENCY_KEY_TTL_HOURS`      | _(planned)_ Idempotency key retention                         | `24`                                             |
+| Variable                                       | Description                                                    | Example                                          |
+| ---------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| `NODE_ENV`                                     | Runtime environment                                            | `development`                                    |
+| `PORT`                                         | API port                                                       | `3000`                                           |
+| `DATABASE_URL`                                 | PostgreSQL connection string (**required**)                    | `postgres://wallet:wallet@localhost:5432/wallet` |
+| `DATABASE_SSL`                                 | Enable SSL (required for Neon)                                 | `false`                                          |
+| `DATABASE_MIGRATIONS_RUN`                      | Run pending migrations on API start-up                         | `false` (local) / `true` (Compose)               |
+| `CORS_ORIGINS`                                 | Comma-separated allowed origins                                | `http://localhost:4200`                          |
+| `LOG_LEVEL`                                    | Log level                                                      | `info`                                           |
+| `TRUST_PROXY`                                  | Trust the first proxy for client IP / protocol (nginx, Render) | `false` (local) / `true` (Compose)               |
+| `SWAGGER_ENABLED`                              | Serve Swagger UI at `/api/docs`                                | `true`                                           |
+| `JWT_ACCESS_SECRET`                            | Secret for access tokens (**required**, ≥ 32 chars)            | `openssl rand -base64 48`                        |
+| `JWT_ACCESS_TTL`                               | Access token lifetime                                          | `15m`                                            |
+| `REFRESH_TOKEN_TTL_DAYS`                       | Refresh token lifetime (days)                                  | `7`                                              |
+| `COOKIE_SECURE`                                | `Secure` flag on the refresh cookie (default `true`)           | `false` (local) / `true` (prod)                  |
+| `JWT_ISSUER` / `JWT_AUDIENCE`                  | `iss` / `aud` claims, checked on verify                        | `digital-wallet-ledger`                          |
+| `AUTH_MAX_FAILED_LOGINS` / `AUTH_LOCK_MINUTES` | Temporary lock after N failed logins                           | `5` / `15`                                       |
+| `MAX_TRANSFER_MINOR`                           | _(planned)_ Max amount per transfer (minor units)              | `500000000`                                      |
+| `DAILY_TRANSFER_LIMIT_MINOR`                   | _(planned)_ Daily limit per user (minor units)                 | `2000000000`                                     |
+| `DEMO_DEPOSITS_ENABLED`                        | _(planned)_ Enable sandbox top-ups                             | `true`                                           |
+| `DEMO_DEPOSIT_DAILY_LIMIT_MINOR`               | _(planned)_ Max sandbox top-up per user per day (minor units)  | `100000000`                                      |
+| `IDEMPOTENCY_KEY_TTL_HOURS`                    | _(planned)_ Idempotency key retention                          | `24`                                             |
 
 The API validates its environment with zod at start-up and refuses to boot with a clear message if something is missing or invalid.
 
@@ -186,18 +190,21 @@ The API validates its environment with zod at start-up and refuses to boot with 
 
 ## 📚 API Documentation
 
-- Interactive docs: **`/api/docs`** (Swagger UI) — _planned_ · live: _TODO_
-- OpenAPI JSON: **`/api/docs-json`** — _planned_
+- Interactive docs: **`/api/docs`** (Swagger UI, with `bearer` auth) · live: _TODO_
+- OpenAPI JSON: **`/api/docs-json`**
+- Errors use RFC 9457 `application/problem+json` with a stable `code` (e.g. `INVALID_CREDENTIALS`, `REFRESH_TOKEN_REUSED`) and a `requestId` (also returned as `X-Request-Id`).
 
-| Method | Endpoint                            | Description                                   | Status     |
-| ------ | ----------------------------------- | --------------------------------------------- | ---------- |
-| `GET`  | `/api/v1/health`                    | Liveness + database ping                      | ✅ Stage 0 |
-| `POST` | `/api/v1/auth/register`             | Create user + wallet                          | Planned    |
-| `POST` | `/api/v1/auth/login`                | Log in                                        | Planned    |
-| `POST` | `/api/v1/auth/refresh`              | Rotate refresh token                          | Planned    |
-| `GET`  | `/api/v1/accounts`                  | My accounts and balances                      | Planned    |
-| `POST` | `/api/v1/transfers`                 | P2P transfer (**requires `Idempotency-Key`**) | Planned    |
-| `GET`  | `/api/v1/accounts/:id/transactions` | History with filters + cursor pagination      | Planned    |
+| Method | Endpoint                            | Description                                                      | Status     |
+| ------ | ----------------------------------- | ---------------------------------------------------------------- | ---------- |
+| `GET`  | `/api/v1/health`                    | Liveness + database ping                                         | ✅ Stage 0 |
+| `POST` | `/api/v1/auth/register`             | Create user (wallet creation lands with Accounts) + session      | ✅ Auth    |
+| `POST` | `/api/v1/auth/login`                | Log in (generic errors, temporary lock after 5 failures)         | ✅ Auth    |
+| `POST` | `/api/v1/auth/refresh`              | Rotate the HttpOnly refresh cookie (single use, reuse detection) | ✅ Auth    |
+| `POST` | `/api/v1/auth/logout`               | Revoke the current refresh token                                 | ✅ Auth    |
+| `GET`  | `/api/v1/auth/me`                   | Current user                                                     | ✅ Auth    |
+| `GET`  | `/api/v1/accounts`                  | My accounts and balances                                         | Planned    |
+| `POST` | `/api/v1/transfers`                 | P2P transfer (**requires `Idempotency-Key`**)                    | Planned    |
+| `GET`  | `/api/v1/accounts/:id/transactions` | History with filters + cursor pagination                         | Planned    |
 
 ```bash
 curl http://localhost:3000/api/v1/health
@@ -219,11 +226,11 @@ Planned highlights:
 - ✅ Ledger invariants: every journal entry balances; balances match the ledger.
 - ✅ Idempotency: same key → same response, single debit; same key + different body → `422`.
 - ✅ Concurrency: 50 parallel transfers from one account never overdraw it and never deadlock.
-- ✅ Refresh token reuse detection revokes the whole session family.
+- ✅ Refresh token reuse detection revokes the whole session family _(done — `test/e2e/auth.e2e-spec.ts`)_.
 
 ## 🧭 Design Decisions
 
-Short ADRs will live in [`docs/adr`](docs/adr):
+Short ADRs live in [`docs/adr`](docs/adr) — written so far: [0001 · JWT access + rotating refresh tokens](docs/adr/0001-jwt-access-and-rotating-refresh-tokens.md). Planned topics:
 
 1. Money as integer minor units (`BIGINT`)
 2. Double-entry, append-only ledger + materialized balances
@@ -234,7 +241,7 @@ Short ADRs will live in [`docs/adr`](docs/adr):
 ## 🗺️ Roadmap
 
 - [x] **Stage 0** — project setup: pnpm monorepo, Docker Compose, validated config, TypeORM baseline, `/health`, CI _(Husky + commitlint pending)_
-- [ ] **MVP** — auth (JWT + refresh), wallets, sandbox deposits, idempotent P2P transfers, double-entry ledger, history, Swagger, tests, deploy
+- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, wallets, sandbox deposits, idempotent P2P transfers, double-entry ledger, history, Swagger, tests, deploy
 - [ ] **v1** — advanced filters, receipts, RFC 9457 errors, reconciliation job, active sessions, daily limits, Playwright, CD
 - [ ] Rate limiting
 - [ ] Audit log
