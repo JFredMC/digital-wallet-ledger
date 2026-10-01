@@ -13,7 +13,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-**Live demo:** _TODO_ · **API docs (Swagger):** _TODO_ · [**Architecture decisions**](docs/adr) · [**Project plan**](docs/PLAN.md)
+**[Live demo (GitHub Pages, modo demo)](https://jfredmc.github.io/digital-wallet-ledger/)** · **API docs (Swagger):** _TODO_ · [**Architecture decisions**](docs/adr) · [**Project plan**](docs/PLAN.md)
 
 </div>
 
@@ -21,7 +21,7 @@
 
 ---
 
-> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI), **authentication** (register/login, JWT access + rotating refresh tokens, Swagger) **accounts + double-entry ledger** (a COP wallet opened at registration, append-only ledger, sandbox deposits) **idempotent P2P transfers** (`Idempotency-Key`, row locking, 50-parallel-request tests) with cursor-paginated history, and the **Angular web app** (Spanish UI: login/register, dashboard, deposits, transfers with recipient lookup, history with filters; in-memory access token with single-flight cookie refresh; Playwright e2e in CI). Next: seed data, Swagger polish and deploy (see the [roadmap](#️-roadmap)).
+> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI), **authentication** (register/login, JWT access + rotating refresh tokens, Swagger) **accounts + double-entry ledger** (a COP wallet opened at registration, append-only ledger, sandbox deposits) **idempotent P2P transfers** (`Idempotency-Key`, row locking, 50-parallel-request tests) with cursor-paginated history, and the **Angular web app** (Spanish UI: login/register, dashboard, deposits, transfers with recipient lookup, history with filters; in-memory access token with single-flight cookie refresh; Playwright e2e in CI). The web app is **live on GitHub Pages in demo mode** (see below). Next: seed data, Swagger polish and the API deploy (see the [roadmap](#️-roadmap)).
 
 ## 📖 About
 
@@ -29,7 +29,19 @@ Digital Wallet Ledger is a portfolio project that tackles the problems that matt
 
 > ⚠️ **Demo only.** This is not a licensed financial product: no real money, KYC or payment-network integration.
 
-> ⏱️ **Heads-up (once deployed):** the API will run on a free tier that sleeps after inactivity. The first request may take ~1 minute to wake it up.
+## 🌐 Live demo (GitHub Pages)
+
+**https://jfredmc.github.io/digital-wallet-ledger/** — the Angular app built with `ng build -c demo`. Until the API is deployed, a **mock backend runs entirely in your browser** (an Angular HTTP interceptor) and keeps its data in `localStorage`. It implements the same REST contract as the NestJS API: auth with an expiring access token and a refresh "cookie", balances, deposits, transfers with **`Idempotency-Key` replay**, limits, recipient lookup, history with filters and cursor pagination, and RFC 9457 errors. The UI shows **"Modo demo · datos simulados"** and a **"Restablecer demo"** button that restores the sample data.
+
+| Demo user          | Email                      | Password   |
+| ------------------ | -------------------------- | ---------- |
+| Ana María Gómez    | `ana@billetera.demo`       | `Demo1234` |
+| Luis Alberto Pérez | `luis@billetera.demo`      | `Demo1234` |
+| Valentina Rojas    | `valentina@billetera.demo` | `Demo1234` |
+
+You can also register a new user (it stays in your browser). Aliases for transfers: `ana`, `luis`, `vale`. Details: [ADR 0004](docs/adr/0004-github-pages-demo-mode.md).
+
+> ⏱️ **Heads-up (once the API is deployed):** the API will run on a free tier that sleeps after inactivity. The first request may take ~1 minute to wake it up.
 
 ## ✨ Features (planned)
 
@@ -107,7 +119,7 @@ sequenceDiagram
 | Database | PostgreSQL 16 (CHECK constraints, partial indexes, append-only triggers)                                                                                 |
 | Frontend | Angular 22 (standalone, signals, zoneless), SCSS · _planned:_ Angular Material                                                                           |
 | Testing  | Jest + Supertest (API), Vitest (web), Playwright (browser e2e, desktop + mobile) · _planned:_ Testcontainers                                             |
-| DevOps   | Docker, Docker Compose, GitHub Actions · _planned:_ Render, Neon, Vercel/Netlify                                                                         |
+| DevOps   | Docker, Docker Compose, GitHub Actions, GitHub Pages (demo) · _planned:_ Render, Neon, Vercel/Netlify                                                    |
 | Tooling  | Node.js 24 LTS, pnpm workspaces, ESLint (typescript-eslint, angular-eslint), Prettier · _planned:_ Husky, commitlint                                     |
 
 ## 🚀 Getting Started
@@ -234,7 +246,7 @@ pnpm --filter api test:cov    # API coverage report
 pnpm --filter web e2e         # Playwright against a running stack (default http://localhost:4200)
 ```
 
-CI (GitHub Actions) runs lint, typecheck, unit tests and builds for both apps, the API e2e suite against a PostgreSQL 16 service container, a Docker Compose smoke test, and the Playwright suite (desktop Chrome + Pixel 7) against the Compose stack.
+CI (GitHub Actions) runs lint, typecheck, unit tests and builds for both apps, the API e2e suite against a PostgreSQL 16 service container, a Docker Compose smoke test, the Playwright suite (desktop Chrome + Pixel 7) against the Compose stack, and a Playwright smoke of the **GitHub Pages demo build** served under `/digital-wallet-ledger/` like Pages does. Every push to `main` deploys the demo (`.github/workflows/pages.yml`).
 
 Highlights:
 
@@ -254,11 +266,12 @@ Short ADRs live in [`docs/adr`](docs/adr) — written so far:
 1. [0001 · JWT access + rotating refresh tokens](docs/adr/0001-jwt-access-and-rotating-refresh-tokens.md) in `HttpOnly` cookies, served same-origin
 2. [0002 · Double-entry, append-only ledger](docs/adr/0002-double-entry-ledger.md): money as `BIGINT` minor units, materialized balances, DB-enforced invariants, pessimistic row locking with deterministic ordering (`READ COMMITTED`)
 3. [0003 · Idempotency keys](docs/adr/0003-idempotency-keys.md): the unique index as a natural lock, claimed in the same transaction as the money movement; only successes are replayed
+4. [0004 · GitHub Pages demo mode](docs/adr/0004-github-pages-demo-mode.md): a build-time switch that answers `/api/v1` with an in-browser backend, keeping the real-API build untouched
 
 ## 🗺️ Roadmap
 
 - [x] **Stage 0** — project setup: pnpm monorepo, Docker Compose, validated config, TypeORM baseline, `/health`, CI _(Husky + commitlint pending)_
-- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, ~~wallets, sandbox deposits, double-entry ledger~~ ✅, ~~idempotent P2P transfers, history~~ ✅, ~~Angular screens~~ ✅, seed data, Swagger, deploy
+- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, ~~wallets, sandbox deposits, double-entry ledger~~ ✅, ~~idempotent P2P transfers, history~~ ✅, ~~Angular screens~~ ✅, ~~web demo on GitHub Pages~~ ✅, seed data, Swagger, API deploy
 - [ ] **v1** — advanced filters, receipts, RFC 9457 errors, reconciliation job, active sessions, daily limits, ~~Playwright~~ ✅, CD
 - [ ] Rate limiting
 - [ ] Audit log
