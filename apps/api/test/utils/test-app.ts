@@ -15,7 +15,9 @@ export async function createTestApp(): Promise<TestContext> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication<INestApplication<App>>({ logger: ['error'] });
   configureApp(app);
-  await app.init();
+  // Listen once on an ephemeral port: supertest reuses it instead of starting a
+  // server per request (matters for the parallel-request tests).
+  await app.listen(0, '127.0.0.1');
   return { app, dataSource: app.get(DataSource) };
 }
 
