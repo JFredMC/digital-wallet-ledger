@@ -5,7 +5,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DataSource } from 'typeorm';
-import { validateEnv } from '../config/env.schema';
+import { validateDatabaseEnv } from '../config/env.schema';
 import { buildDataSourceOptions } from './typeorm.options';
 
 for (const candidate of [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../../.env')]) {
@@ -15,4 +15,4 @@ for (const candidate of [resolve(process.cwd(), '.env'), resolve(process.cwd(), 
   }
 }
 
-export default new DataSource(buildDataSourceOptions(validateEnv(process.env)));
+export default new DataSource(buildDataSourceOptions(validateDatabaseEnv(process.env)));
