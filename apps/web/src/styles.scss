@@ -1,16 +1,332 @@
-/* Global styles. Angular Material (M3) theme and design tokens will live here. */
+/* Design tokens + a small set of global building blocks (cards, forms, buttons).
+   Components keep only layout-specific styles. */
 :root {
   color-scheme: light;
+  --c-bg: #f4f6fb;
+  --c-surface: #ffffff;
+  --c-surface-2: #f8fafc;
+  --c-text: #0f172a;
+  --c-muted: #64748b;
+  --c-border: #e2e8f0;
+  --c-primary: #4f46e5;
+  --c-primary-600: #4338ca;
+  --c-primary-50: #eef2ff;
+  --c-success: #059669;
+  --c-success-50: #ecfdf5;
+  --c-danger: #dc2626;
+  --c-danger-50: #fef2f2;
+  --c-warning-50: #fffbeb;
+  --c-warning: #b45309;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgb(15 23 42 / 6%), 0 4px 16px rgb(15 23 42 / 6%);
+  --gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #db2777 120%);
   font-family:
+    Inter,
     system-ui,
     -apple-system,
     'Segoe UI',
     Roboto,
     sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #fafafa;
-  color: #1a1a1a;
+  background: var(--c-bg);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+}
+
+a {
+  color: var(--c-primary);
+}
+
+.muted {
+  color: var(--c-muted);
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- layout ----------------------------------------------------------------- */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 6rem;
+}
+
+.page-narrow {
+  max-width: 560px;
+}
+
+.page-header {
+  margin-bottom: 1.25rem;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* --- cards ------------------------------------------------------------------ */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* --- forms ------------------------------------------------------------------ */
+.field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.field label,
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.input,
+select.input {
+  width: 100%;
+  min-width: 0; /* date inputs have a wide intrinsic size on phones */
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  color: inherit;
+  font: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgb(79 70 229 / 18%);
+}
+
+.input.ng-invalid.ng-touched {
+  border-color: var(--c-danger);
+}
+
+.input-money {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+}
+
+.field-error {
+  font-size: 0.8rem;
+  color: var(--c-danger);
+}
+
+/* --- buttons ---------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    transform 0.05s;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--c-primary-600);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--c-border);
+  color: var(--c-text);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--c-surface-2);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.chip {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--c-primary);
+  background: var(--c-primary-50);
+  color: var(--c-primary-600);
+  font-weight: 600;
+}
+
+/* --- feedback --------------------------------------------------------------- */
+.alert {
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.925rem;
+  border: 1px solid transparent;
+}
+
+.alert-error {
+  background: var(--c-danger-50);
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.alert-success {
+  background: var(--c-success-50);
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.alert-info {
+  background: var(--c-warning-50);
+  border-color: #fde68a;
+  color: var(--c-warning);
+}
+
+.amount-in {
+  color: var(--c-success);
+}
+
+.amount-out {
+  color: var(--c-text);
+}
+
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef2f7 25%, #e2e8f0 37%, #eef2f7 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+app-problem-alert:not(:empty) {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.amount-lg {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+/* Brand logo tile (shell top bar and auth pages). */
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--gradient);
+  color: #fff;
 }
