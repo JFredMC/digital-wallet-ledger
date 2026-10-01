@@ -8,5 +8,4 @@ rewritten; a superseding ADR links back to the one it replaces.
 | ------------------------------------------------------ | ----------------------------------------------------------------- | -------- |
 | [0001](0001-jwt-access-and-rotating-refresh-tokens.md) | JWT access tokens + rotating refresh tokens in an HttpOnly cookie | Accepted |
 | [0002](0002-double-entry-ledger.md)                    | Double-entry, append-only ledger with materialized balances       | Accepted |
-
-Planned (per [`docs/PLAN.md`](../PLAN.md)): idempotency keys for transfers.
+| [0003](0003-idempotency-keys.md)                       | Idempotency keys for money-moving requests                        | Accepted |

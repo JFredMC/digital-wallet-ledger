@@ -26,5 +26,8 @@ NestJS 11 + TypeORM + PostgreSQL. Global prefix: `/api/v1`.
 - `src/modules/ledger/` — double-entry journal + append-only ledger lines. `LedgerService.post()` is the only writer of ledger rows and balances; it locks accounts `FOR UPDATE` in id order. The database backs it up with append-only and balanced-journal triggers ([ADR 0002](../../docs/adr/0002-double-entry-ledger.md)).
 - `src/modules/accounts/` — wallets (opened in the registration transaction), `GET /accounts`, `GET /accounts/:id` (owner only), recipient lookup with masked data.
 - `src/modules/deposits/` — sandbox top-ups (`DEBIT SYSTEM_FUNDING / CREDIT wallet`) with a rolling 24 h limit.
+- `src/modules/idempotency/` — required `Idempotency-Key` header; the key is claimed with `INSERT … ON CONFLICT` inside the business transaction and the response replayed on retries ([ADR 0003](../../docs/adr/0003-idempotency-keys.md)).
+- `src/modules/transfers/` — `POST /transfers`: P2P by account number or alias, with per-transfer and rolling daily limits, posted through `LedgerService` (row locks in id order).
+- `src/modules/transactions/` — `GET /accounts/:id/transactions`: history with filters and keyset pagination (`src/common/pagination/cursor.ts`).
 - Swagger UI at `/api/docs` (OpenAPI JSON at `/api/docs-json`).
-- Remaining module folders (`transfers`, `idempotency`, ...) are reserved per [`docs/STRUCTURE.md`](../../docs/STRUCTURE.md).
+- Remaining module folders (`audit`, `webhooks`, ...) are reserved per [`docs/STRUCTURE.md`](../../docs/STRUCTURE.md).

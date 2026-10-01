@@ -21,7 +21,7 @@
 
 ---
 
-> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI), **authentication** (register/login, JWT access + rotating refresh tokens, Swagger) and **accounts + double-entry ledger** (a COP wallet opened at registration, append-only ledger, sandbox deposits). Next: idempotent P2P transfers + history, Angular screens (see the [roadmap](#️-roadmap)).
+> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI), **authentication** (register/login, JWT access + rotating refresh tokens, Swagger) **accounts + double-entry ledger** (a COP wallet opened at registration, append-only ledger, sandbox deposits) and **idempotent P2P transfers** (`Idempotency-Key`, row locking, 50-parallel-request tests) with cursor-paginated history. Next: Angular screens (see the [roadmap](#️-roadmap)).
 
 ## 📖 About
 
@@ -84,9 +84,9 @@ sequenceDiagram
     participant DB as PostgreSQL
     C->>API: POST /transfers (Idempotency-Key)
     API->>DB: BEGIN
-    API->>DB: INSERT idempotency key (ON CONFLICT DO NOTHING)
+    API->>DB: INSERT idempotency key ON CONFLICT (waits if a duplicate is in flight)
     alt key already used
-        API-->>C: stored response (same transfer id)
+        API-->>C: stored response + Idempotent-Replayed (or 422 if the body differs)
     else new key
         API->>DB: SELECT accounts ... ORDER BY id FOR UPDATE
         API->>DB: INSERT journal + 2 ledger entries, UPDATE balances
@@ -178,11 +178,11 @@ pnpm dev                      # API on :3000, Angular on :4200 (proxy /api → :
 | `COOKIE_SECURE`                                | `Secure` flag on the refresh cookie (default `true`)           | `false` (local) / `true` (prod)                  |
 | `JWT_ISSUER` / `JWT_AUDIENCE`                  | `iss` / `aud` claims, checked on verify                        | `digital-wallet-ledger`                          |
 | `AUTH_MAX_FAILED_LOGINS` / `AUTH_LOCK_MINUTES` | Temporary lock after N failed logins                           | `5` / `15`                                       |
-| `MAX_TRANSFER_MINOR`                           | _(planned)_ Max amount per transfer (minor units)              | `500000000`                                      |
-| `DAILY_TRANSFER_LIMIT_MINOR`                   | _(planned)_ Daily limit per user (minor units)                 | `2000000000`                                     |
+| `MAX_TRANSFER_MINOR`                           | Max amount per transfer (minor units)                          | `500000000`                                      |
+| `DAILY_TRANSFER_LIMIT_MINOR`                   | Max sent per wallet, rolling 24 h (minor units)                | `2000000000`                                     |
 | `DEMO_DEPOSITS_ENABLED`                        | Enable sandbox top-ups (`POST /deposits`)                      | `true`                                           |
 | `DEMO_DEPOSIT_DAILY_LIMIT_MINOR`               | Max sandbox top-up per wallet, rolling 24 h (minor units)      | `100000000`                                      |
-| `IDEMPOTENCY_KEY_TTL_HOURS`                    | _(planned)_ Idempotency key retention                          | `24`                                             |
+| `IDEMPOTENCY_KEY_TTL_HOURS`                    | How long a stored `Idempotency-Key` response is replayed       | `24`                                             |
 
 The API validates its environment with zod at start-up and refuses to boot with a clear message if something is missing or invalid.
 
@@ -192,26 +192,36 @@ The API validates its environment with zod at start-up and refuses to boot with 
 
 - Interactive docs: **`/api/docs`** (Swagger UI, with `bearer` auth) · live: _TODO_
 - OpenAPI JSON: **`/api/docs-json`**
-- Errors use RFC 9457 `application/problem+json` with a stable `code` (e.g. `INVALID_CREDENTIALS`, `REFRESH_TOKEN_REUSED`, `DAILY_DEPOSIT_LIMIT_EXCEEDED`) and a `requestId` (also returned as `X-Request-Id`).
+- Errors use RFC 9457 `application/problem+json` with a stable `code` (e.g. `INVALID_CREDENTIALS`, `REFRESH_TOKEN_REUSED`, `INSUFFICIENT_FUNDS`, `IDEMPOTENCY_KEY_REUSED`) and a `requestId` (also returned as `X-Request-Id`).
 
-| Method | Endpoint                            | Description                                                      | Status     |
-| ------ | ----------------------------------- | ---------------------------------------------------------------- | ---------- |
-| `GET`  | `/api/v1/health`                    | Liveness + database ping                                         | ✅ Stage 0 |
-| `POST` | `/api/v1/auth/register`             | Create user + COP wallet (one transaction) + session             | ✅ Auth    |
-| `POST` | `/api/v1/auth/login`                | Log in (generic errors, temporary lock after 5 failures)         | ✅ Auth    |
-| `POST` | `/api/v1/auth/refresh`              | Rotate the HttpOnly refresh cookie (single use, reuse detection) | ✅ Auth    |
-| `POST` | `/api/v1/auth/logout`               | Revoke the current refresh token                                 | ✅ Auth    |
-| `GET`  | `/api/v1/auth/me`                   | Current user                                                     | ✅ Auth    |
-| `GET`  | `/api/v1/accounts`                  | My accounts and balances                                         | ✅ Ledger  |
-| `GET`  | `/api/v1/accounts/:id`              | One of my accounts (`404` for anyone else's)                     | ✅ Ledger  |
-| `GET`  | `/api/v1/accounts/lookup`           | Find a recipient by `number` or `alias` (masked name/number)     | ✅ Ledger  |
-| `POST` | `/api/v1/deposits`                  | Sandbox top-up (fake money, rolling 24 h limit)                  | ✅ Ledger  |
-| `POST` | `/api/v1/transfers`                 | P2P transfer (**requires `Idempotency-Key`**)                    | Planned    |
-| `GET`  | `/api/v1/accounts/:id/transactions` | History with filters + cursor pagination                         | Planned    |
+| Method | Endpoint                            | Description                                                      | Status       |
+| ------ | ----------------------------------- | ---------------------------------------------------------------- | ------------ |
+| `GET`  | `/api/v1/health`                    | Liveness + database ping                                         | ✅ Stage 0   |
+| `POST` | `/api/v1/auth/register`             | Create user + COP wallet (one transaction) + session             | ✅ Auth      |
+| `POST` | `/api/v1/auth/login`                | Log in (generic errors, temporary lock after 5 failures)         | ✅ Auth      |
+| `POST` | `/api/v1/auth/refresh`              | Rotate the HttpOnly refresh cookie (single use, reuse detection) | ✅ Auth      |
+| `POST` | `/api/v1/auth/logout`               | Revoke the current refresh token                                 | ✅ Auth      |
+| `GET`  | `/api/v1/auth/me`                   | Current user                                                     | ✅ Auth      |
+| `GET`  | `/api/v1/accounts`                  | My accounts and balances                                         | ✅ Ledger    |
+| `GET`  | `/api/v1/accounts/:id`              | One of my accounts (`404` for anyone else's)                     | ✅ Ledger    |
+| `GET`  | `/api/v1/accounts/lookup`           | Find a recipient by `number` or `alias` (masked name/number)     | ✅ Ledger    |
+| `POST` | `/api/v1/deposits`                  | Sandbox top-up (**requires `Idempotency-Key`**, 24 h limit)      | ✅ Ledger    |
+| `POST` | `/api/v1/transfers`                 | P2P transfer (**requires `Idempotency-Key`**)                    | ✅ Transfers |
+| `GET`  | `/api/v1/accounts/:id/transactions` | History: type/direction/date/amount filters, cursor pagination   | ✅ Transfers |
 
 ```bash
 curl http://localhost:3000/api/v1/health
 # {"status":"ok","info":{"database":{"status":"up"}},"error":{},"details":{"database":{"status":"up"}}}
+
+# Send $25.000,00 COP. Retrying with the same key replays the response instead of paying twice.
+curl -X POST http://localhost:3000/api/v1/transfers \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"fromAccountId":"<your wallet id>","toAccountNumber":"1000-0000-0002","amountMinor":2500000}'
+
+# History, 20 per page; pass nextCursor back as ?cursor=… for the next page.
+curl "http://localhost:3000/api/v1/accounts/<wallet id>/transactions?direction=OUT&limit=20" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## 🧪 Testing
@@ -224,12 +234,13 @@ pnpm --filter api test:cov    # API coverage report
 
 CI (GitHub Actions) runs lint, typecheck, unit tests and builds for both apps, the API e2e suite against a PostgreSQL 16 service container, and a Docker Compose smoke test.
 
-Planned highlights:
+Highlights:
 
 - ✅ Ledger invariants: every journal entry balances; balances match the ledger; Σ balances = 0 _(done — checked after every e2e test, plus `test/e2e/ledger.e2e-spec.ts` proves PostgreSQL rejects unbalanced, mutated or overdrawn postings)_.
 - ✅ Concurrent deposits can't exceed the daily limit _(done — `test/e2e/deposits.e2e-spec.ts`)_.
-- ✅ Idempotency: same key → same response, single debit; same key + different body → `422`.
-- ✅ Concurrency: 50 parallel transfers from one account never overdraw it and never deadlock.
+- ✅ Idempotency: same key → same response, single debit; same key + different body → `422`; 20 parallel retries with one key move money once _(done — `test/e2e/transfers.e2e-spec.ts`, `test/e2e/concurrency.e2e-spec.ts`)_.
+- ✅ Concurrency: 50 parallel transfers from one wallet never overdraw it (exactly 33 of 50 succeed, no lost updates). 50 transfers in both directions between two wallets never deadlock _(done — `test/e2e/concurrency.e2e-spec.ts`)_.
+- ✅ History pagination walks every row exactly once, even when rows share a timestamp _(done — `test/e2e/transactions.e2e-spec.ts`)_.
 - ✅ Refresh token reuse detection revokes the whole session family _(done — `test/e2e/auth.e2e-spec.ts`)_.
 
 ## 🧭 Design Decisions
@@ -238,13 +249,12 @@ Short ADRs live in [`docs/adr`](docs/adr) — written so far:
 
 1. [0001 · JWT access + rotating refresh tokens](docs/adr/0001-jwt-access-and-rotating-refresh-tokens.md) in `HttpOnly` cookies, served same-origin
 2. [0002 · Double-entry, append-only ledger](docs/adr/0002-double-entry-ledger.md): money as `BIGINT` minor units, materialized balances, DB-enforced invariants, pessimistic row locking with deterministic ordering (`READ COMMITTED`)
-
-Planned: idempotency keys with a unique index as a natural lock.
+3. [0003 · Idempotency keys](docs/adr/0003-idempotency-keys.md): the unique index as a natural lock, claimed in the same transaction as the money movement; only successes are replayed
 
 ## 🗺️ Roadmap
 
 - [x] **Stage 0** — project setup: pnpm monorepo, Docker Compose, validated config, TypeORM baseline, `/health`, CI _(Husky + commitlint pending)_
-- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, ~~wallets, sandbox deposits, double-entry ledger~~ ✅, idempotent P2P transfers, history, Swagger, tests, deploy
+- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, ~~wallets, sandbox deposits, double-entry ledger~~ ✅, ~~idempotent P2P transfers, history~~ ✅, Angular screens, Swagger, tests, deploy
 - [ ] **v1** — advanced filters, receipts, RFC 9457 errors, reconciliation job, active sessions, daily limits, Playwright, CD
 - [ ] Rate limiting
 - [ ] Audit log
@@ -261,7 +271,7 @@ Planned: idempotency keys with a unique index as a natural lock.
 
 ```text
 apps/
-  api/        NestJS REST API (config, database, health, auth, accounts, ledger, deposits; transfers... reserved)
+  api/        NestJS REST API (config, database, health, auth, accounts, ledger, deposits, transfers, transactions, idempotency)
   web/        Angular SPA (core, shared, features/*)
 packages/     Shared packages (api-contracts, tsconfig) — planned
 docker/       Postgres init scripts
