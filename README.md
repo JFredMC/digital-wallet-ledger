@@ -21,7 +21,7 @@
 
 ---
 
-> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI), **authentication** (register/login, JWT access + rotating refresh tokens, Swagger) **accounts + double-entry ledger** (a COP wallet opened at registration, append-only ledger, sandbox deposits) and **idempotent P2P transfers** (`Idempotency-Key`, row locking, 50-parallel-request tests) with cursor-paginated history. Next: Angular screens (see the [roadmap](#️-roadmap)).
+> 🚧 **Project status — Stage 1 (MVP) in progress.** Done: foundations (monorepo, Docker Compose, validated config, migrations, `/health`, CI), **authentication** (register/login, JWT access + rotating refresh tokens, Swagger) **accounts + double-entry ledger** (a COP wallet opened at registration, append-only ledger, sandbox deposits) **idempotent P2P transfers** (`Idempotency-Key`, row locking, 50-parallel-request tests) with cursor-paginated history, and the **Angular web app** (Spanish UI: login/register, dashboard, deposits, transfers with recipient lookup, history with filters; in-memory access token with single-flight cookie refresh; Playwright e2e in CI). Next: seed data, Swagger polish and deploy (see the [roadmap](#️-roadmap)).
 
 ## 📖 About
 
@@ -41,7 +41,8 @@ Digital Wallet Ledger is a portfolio project that tackles the problems that matt
 - 📚 **OpenAPI / Swagger** docs with examples and RFC 9457 error responses.
 - 🧪 **Tests** — unit + e2e against a real PostgreSQL, including a **concurrency test** (50 parallel transfers, zero overdrafts).
 - 🐳 **Docker Compose** for a one-command local setup and **GitHub Actions** CI/CD.
-- 🅰️ **Modern Angular** — standalone components, signals, new control flow, functional interceptors/guards, zoneless.
+- 🅰️ **Modern Angular** — standalone components, signals, new control flow, functional interceptors/guards, zoneless. Spanish UI with COP formatting (`$ 25.000`), responsive (top bar on desktop, tab bar on phones).
+- 🛡️ **Safe client** — access token kept **in memory only**; on `401` a **single-flight refresh** (one `/auth/refresh` for any number of failing requests, serialized across tabs with the Web Locks API) replays the original request; every deposit/transfer submit gets an **`Idempotency-Key` that is reused on retry**, so "Reintentar" after a lost response can't charge twice; RFC 9457 errors mapped to Spanish messages.
 
 ## 🏗️ Architecture
 
@@ -105,7 +106,7 @@ sequenceDiagram
 | Backend  | NestJS 11, TypeScript (strict), TypeORM, zod (config), class-validator, Passport JWT, argon2, Swagger/OpenAPI, Terminus, helmet · _planned:_ nestjs-pino |
 | Database | PostgreSQL 16 (CHECK constraints, partial indexes, append-only triggers)                                                                                 |
 | Frontend | Angular 22 (standalone, signals, zoneless), SCSS · _planned:_ Angular Material                                                                           |
-| Testing  | Jest + Supertest (API), Vitest (web) · _planned:_ Testcontainers, Playwright                                                                             |
+| Testing  | Jest + Supertest (API), Vitest (web), Playwright (browser e2e, desktop + mobile) · _planned:_ Testcontainers                                             |
 | DevOps   | Docker, Docker Compose, GitHub Actions · _planned:_ Render, Neon, Vercel/Netlify                                                                         |
 | Tooling  | Node.js 24 LTS, pnpm workspaces, ESLint (typescript-eslint, angular-eslint), Prettier · _planned:_ Husky, commitlint                                     |
 
@@ -230,9 +231,10 @@ curl "http://localhost:3000/api/v1/accounts/<wallet id>/transactions?direction=O
 pnpm test                     # unit tests (API: Jest, web: Vitest)
 pnpm test:e2e                 # API e2e against a real PostgreSQL (DATABASE_URL)
 pnpm --filter api test:cov    # API coverage report
+pnpm --filter web e2e         # Playwright against a running stack (default http://localhost:4200)
 ```
 
-CI (GitHub Actions) runs lint, typecheck, unit tests and builds for both apps, the API e2e suite against a PostgreSQL 16 service container, and a Docker Compose smoke test.
+CI (GitHub Actions) runs lint, typecheck, unit tests and builds for both apps, the API e2e suite against a PostgreSQL 16 service container, a Docker Compose smoke test, and the Playwright suite (desktop Chrome + Pixel 7) against the Compose stack.
 
 Highlights:
 
@@ -242,6 +244,8 @@ Highlights:
 - ✅ Concurrency: 50 parallel transfers from one wallet never overdraw it (exactly 33 of 50 succeed, no lost updates). 50 transfers in both directions between two wallets never deadlock _(done — `test/e2e/concurrency.e2e-spec.ts`)_.
 - ✅ History pagination walks every row exactly once, even when rows share a timestamp _(done — `test/e2e/transactions.e2e-spec.ts`)_.
 - ✅ Refresh token reuse detection revokes the whole session family _(done — `test/e2e/auth.e2e-spec.ts`)_.
+- ✅ Web: concurrent `401`s trigger exactly one refresh and the replayed request keeps its `Idempotency-Key`; a refresh failure expires the session without loops _(done — `auth.interceptor.spec.ts`, `auth.service.spec.ts`)_.
+- ✅ Browser e2e: register → deposit → transfer → filtered history → reload (session restored from the cookie) → logout; a **dropped transfer response** retried with "Reintentar" reuses the key and debits once _(done — `apps/web/e2e/wallet.e2e.ts`)_.
 
 ## 🧭 Design Decisions
 
@@ -254,8 +258,8 @@ Short ADRs live in [`docs/adr`](docs/adr) — written so far:
 ## 🗺️ Roadmap
 
 - [x] **Stage 0** — project setup: pnpm monorepo, Docker Compose, validated config, TypeORM baseline, `/health`, CI _(Husky + commitlint pending)_
-- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, ~~wallets, sandbox deposits, double-entry ledger~~ ✅, ~~idempotent P2P transfers, history~~ ✅, Angular screens, Swagger, tests, deploy
-- [ ] **v1** — advanced filters, receipts, RFC 9457 errors, reconciliation job, active sessions, daily limits, Playwright, CD
+- [ ] **MVP** — ~~auth (JWT + refresh, Swagger)~~ ✅, ~~wallets, sandbox deposits, double-entry ledger~~ ✅, ~~idempotent P2P transfers, history~~ ✅, ~~Angular screens~~ ✅, seed data, Swagger, deploy
+- [ ] **v1** — advanced filters, receipts, RFC 9457 errors, reconciliation job, active sessions, daily limits, ~~Playwright~~ ✅, CD
 - [ ] Rate limiting
 - [ ] Audit log
 - [ ] Two-factor authentication (TOTP)
@@ -265,7 +269,19 @@ Short ADRs live in [`docs/adr`](docs/adr) — written so far:
 
 ## 📸 Screenshots
 
-> 🚧 **TODO — screenshots will be added once the UI exists** (saved in `docs/screenshots/`).
+Captured with Playwright against the local stack (`apps/web/e2e/screenshots.e2e.ts`). The money is fictional.
+
+| Dashboard                                               | Transfer (confirm)                                                         |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| ![Dashboard](docs/screenshots/desktop-03-dashboard.png) | ![Transfer confirmation](docs/screenshots/desktop-07-transfer-confirm.png) |
+| **History with filters**                                | **Login**                                                                  |
+| ![History](docs/screenshots/desktop-09-history.png)     | ![Login](docs/screenshots/desktop-01-login.png)                            |
+
+<p align="center">
+  <img src="docs/screenshots/mobile-03-dashboard.png" alt="Dashboard on a phone" width="240" />
+  <img src="docs/screenshots/mobile-06-transfer-amount.png" alt="Transfer amount on a phone" width="240" />
+  <img src="docs/screenshots/mobile-10-history-list.png" alt="History on a phone" width="240" />
+</p>
 
 ## 📁 Project Structure
 
