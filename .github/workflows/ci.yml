@@ -210,3 +210,42 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  e2e-demo:
+    name: Demo build e2e (GitHub Pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter web
+
+      - name: Build the Pages demo
+        run: pnpm --filter web build:pages
+
+      - name: Install Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Playwright against the demo build (served like GitHub Pages)
+        run: pnpm --filter web e2e:demo
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-demo
+          path: |
+            apps/web/playwright-report/demo
+            apps/web/test-results/demo
+          retention-days: 7
