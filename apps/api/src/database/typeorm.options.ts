@@ -1,14 +1,12 @@
 import { join } from 'node:path';
 import type { DataSourceOptions } from 'typeorm';
-import type { Env } from '../config/env.schema';
+import type { DatabaseEnv } from '../config/env.schema';
 
 // Load .ts files when running through ts-node/ts-jest and .js from the compiled build
 // (never *.d.ts, which would otherwise match a "*.{ts,js}" glob).
 const ext = __filename.endsWith('.ts') ? 'ts' : 'js';
 
-export function buildDataSourceOptions(
-  env: Pick<Env, 'DATABASE_URL' | 'DATABASE_SSL' | 'DATABASE_MIGRATIONS_RUN'>,
-): DataSourceOptions {
+export function buildDataSourceOptions(env: DatabaseEnv): DataSourceOptions {
   return {
     type: 'postgres',
     url: env.DATABASE_URL,

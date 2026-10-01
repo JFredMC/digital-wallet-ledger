@@ -115,6 +115,13 @@ jobs:
           curl -fsS http://localhost:4200/api/v1/health   # through the nginx /api proxy
           echo
           curl -fsS http://localhost:4200/ | grep -q '<app-root'
+          curl -fsS http://localhost:3000/api/docs-json > /dev/null
+          # Auth round-trip through the nginx proxy (same origin as the SPA).
+          TOKEN=$(curl -fsS -X POST http://localhost:4200/api/v1/auth/register \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"smoke@example.com","password":"Smoke-passw0rd","fullName":"Smoke Test"}' \
+            | jq -er .accessToken)
+          curl -fsS http://localhost:4200/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
 
       - name: Logs on failure
         if: failure()

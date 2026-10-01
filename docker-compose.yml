@@ -32,7 +32,13 @@ services:
       DATABASE_SSL: 'false'
       DATABASE_MIGRATIONS_RUN: 'true'
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
+      TRUST_PROXY: 'true'
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env (cp .env.example .env)}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      # Local compose is served over plain http; use 'true' behind HTTPS.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:
