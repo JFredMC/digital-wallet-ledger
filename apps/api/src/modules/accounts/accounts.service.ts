@@ -8,6 +8,12 @@ import type { AccountLookupDto } from './dto/account-lookup.dto';
 import { Account, type SystemAccountType } from './entities/account.entity';
 import { maskAccountNumber, maskHolderName } from './masking';
 
+/** Exactly one of the two is set (validated by the caller). */
+export interface RecipientQuery {
+  number?: string;
+  alias?: string;
+}
+
 const notFound = () => new DomainError('ACCOUNT_NOT_FOUND', 'Account not found.');
 
 @Injectable()
@@ -49,18 +55,35 @@ export class AccountsService {
     return account;
   }
 
-  /** Resolves a recipient by number or alias. Only active user wallets are visible. */
-  async lookup(query: { number?: string; alias?: string }): Promise<AccountLookupDto> {
-    const account = await this.accounts.findOneBy({
+  /**
+   * Resolves a recipient by number or alias. Only active user wallets are
+   * visible. Returns the full holder name: callers must mask it before
+   * showing it to anyone but the owner.
+   */
+  async findRecipient(
+    query: RecipientQuery,
+    manager?: EntityManager,
+  ): Promise<{ account: Account; holderName: string } | null> {
+    const repo = manager ? manager.getRepository(Account) : this.accounts;
+    const account = await repo.findOneBy({
       ...(query.number ? { number: query.number } : { alias: query.alias }),
       type: 'USER_WALLET',
       status: 'ACTIVE',
     });
-    const holder = account?.userId ? await this.users.findById(account.userId) : null;
-    if (!account || !holder) throw notFound();
+    // Same manager as the account read: inside a transaction, borrowing a second
+    // pool connection can exhaust the pool under load (every transaction holding
+    // one connection while waiting for another).
+    const holder = account?.userId ? await this.users.findById(account.userId, manager) : null;
+    return account && holder ? { account, holderName: holder.fullName } : null;
+  }
+
+  async lookup(query: RecipientQuery): Promise<AccountLookupDto> {
+    const recipient = await this.findRecipient(query);
+    if (!recipient) throw notFound();
+    const { account, holderName } = recipient;
 
     return {
-      holderName: maskHolderName(holder.fullName),
+      holderName: maskHolderName(holderName),
       accountNumber: maskAccountNumber(account.number),
       alias: account.alias,
       currency: account.currency,

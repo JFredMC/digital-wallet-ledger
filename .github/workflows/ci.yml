@@ -123,15 +123,34 @@ jobs:
             | jq -er .accessToken)
           curl -fsS http://localhost:4200/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
           echo
-          # Registration opened a COP wallet; top it up and check the balance.
+          # Registration opened a COP wallet; top it up (idempotently) and check the balance.
           WALLET_ID=$(curl -fsS http://localhost:4200/api/v1/accounts \
             -H "Authorization: Bearer $TOKEN" | jq -er '.[0].id')
           curl -fsS -X POST http://localhost:4200/api/v1/deposits \
             -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+            -H 'Idempotency-Key: smoke-deposit-0001' \
             -d "{\"accountId\":\"$WALLET_ID\",\"amountMinor\":5000000}" \
             | jq -e '.balanceAfterMinor == 5000000'
+          # P2P transfer to a second user, then a retry with the same key is replayed.
+          BOB_TOKEN=$(curl -fsS -X POST http://localhost:4200/api/v1/auth/register \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"bob@example.com","password":"Smoke-passw0rd","fullName":"Bob Smoke"}' \
+            | jq -er .accessToken)
+          BOB_NUMBER=$(curl -fsS http://localhost:4200/api/v1/accounts \
+            -H "Authorization: Bearer $BOB_TOKEN" | jq -er '.[0].number')
+          TRANSFER="{\"fromAccountId\":\"$WALLET_ID\",\"toAccountNumber\":\"$BOB_NUMBER\",\"amountMinor\":1500000}"
+          for attempt in 1 2; do
+            curl -fsS -D /tmp/headers.txt -X POST http://localhost:4200/api/v1/transfers \
+              -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+              -H 'Idempotency-Key: smoke-transfer-0001' -d "$TRANSFER" \
+              | jq -e '.status == "COMPLETED" and .balanceAfterMinor == 3500000'
+          done
+          grep -qi '^idempotent-replayed: true' /tmp/headers.txt
           curl -fsS "http://localhost:4200/api/v1/accounts/$WALLET_ID" \
-            -H "Authorization: Bearer $TOKEN" | jq -e '.balanceMinor == 5000000'
+            -H "Authorization: Bearer $TOKEN" | jq -e '.balanceMinor == 3500000'
+          curl -fsS "http://localhost:4200/api/v1/accounts/$WALLET_ID/transactions?limit=1" \
+            -H "Authorization: Bearer $TOKEN" \
+            | jq -e '.items[0].direction == "OUT" and .items[0].amountMinor == 1500000 and .nextCursor != null'
 
       - name: Logs on failure
         if: failure()

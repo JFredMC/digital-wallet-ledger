@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 import type { Env } from './config/env.schema';
 import { REFRESH_COOKIE_NAME } from './modules/auth/auth.constants';
+import { IDEMPOTENT_REPLAYED_HEADER } from './modules/idempotency/idempotency.constants';
 
 export const API_PREFIX = 'api/v1';
 export const DOCS_PATH = 'api/docs';
@@ -32,7 +33,7 @@ export function configureApp(app: INestApplication): void {
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),
     credentials: true,
-    exposedHeaders: ['X-Request-Id'],
+    exposedHeaders: ['X-Request-Id', IDEMPOTENT_REPLAYED_HEADER],
   });
   app.setGlobalPrefix(API_PREFIX);
   app.enableShutdownHooks();

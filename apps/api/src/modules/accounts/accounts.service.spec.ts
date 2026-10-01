@@ -92,6 +92,32 @@ describe('AccountsService', () => {
     });
   });
 
+  describe('findRecipient', () => {
+    it('returns the account and the full holder name, inside the transaction', async () => {
+      const { service, users } = setup();
+      const txRepo = { findOneBy: jest.fn().mockResolvedValue(wallet) };
+      const manager = { getRepository: jest.fn().mockReturnValue(txRepo) };
+      users.findById.mockResolvedValue({ fullName: 'Luis Alberto Pérez' });
+
+      await expect(
+        service.findRecipient({ alias: '@luis' }, manager as unknown as EntityManager),
+      ).resolves.toEqual({ account: wallet, holderName: 'Luis Alberto Pérez' });
+      // Never a second pool connection inside a transaction (pool exhaustion).
+      expect(users.findById).toHaveBeenCalledWith('user-1', manager);
+      expect(txRepo.findOneBy).toHaveBeenCalledWith({
+        alias: '@luis',
+        type: 'USER_WALLET',
+        status: 'ACTIVE',
+      });
+    });
+
+    it('returns null when nothing matches', async () => {
+      const { service, repo } = setup();
+      repo.findOneBy.mockResolvedValue(null);
+      await expect(service.findRecipient({ number: '1000-0000-0999' })).resolves.toBeNull();
+    });
+  });
+
   describe('lookup', () => {
     it('returns masked recipient data for active user wallets only', async () => {
       const { service, repo, users } = setup();

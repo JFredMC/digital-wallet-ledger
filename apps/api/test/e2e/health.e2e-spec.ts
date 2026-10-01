@@ -39,6 +39,8 @@ describe('Health (e2e)', () => {
         '/api/v1/accounts/lookup',
         '/api/v1/accounts/{id}',
         '/api/v1/deposits',
+        '/api/v1/transfers',
+        '/api/v1/accounts/{accountId}/transactions',
       ]),
     );
     expect(res.body.components.securitySchemes).toHaveProperty('bearer');

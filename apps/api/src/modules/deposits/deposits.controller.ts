@@ -1,6 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -8,10 +8,11 @@ import {
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
-  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { ProblemDetailsDto } from '../../common/filters/problem-details.dto';
+import { ApiIdempotent, IdempotencyKey } from '../idempotency/idempotency-key.decorator';
+import { sendIdempotent } from '../idempotency/idempotency.service';
 import { DepositsService } from './deposits.service';
 import { CreateDepositDto } from './dto/create-deposit.dto';
 import { DepositDto } from './dto/deposit.dto';
@@ -27,18 +28,20 @@ export class DepositsController {
     summary: 'Simulated top-up (demo only)',
     description:
       'Moves fictitious money from SYSTEM_FUNDING into your wallet via a balanced journal entry. ' +
-      'Limited per rolling 24 h (`DEMO_DEPOSIT_DAILY_LIMIT_MINOR`).',
+      'Limited per rolling 24 h (`DEMO_DEPOSIT_DAILY_LIMIT_MINOR`). Requires `Idempotency-Key`; ' +
+      'unprocessable (422) cases: DAILY_DEPOSIT_LIMIT_EXCEEDED, ACCOUNT_NOT_ACTIVE.',
   })
+  @ApiIdempotent()
   @ApiCreatedResponse({ type: DepositDto })
-  @ApiBadRequestResponse({ type: ProblemDetailsDto, description: 'VALIDATION_FAILED' })
   @ApiUnauthorizedResponse({ type: ProblemDetailsDto, description: 'UNAUTHORIZED' })
   @ApiForbiddenResponse({ type: ProblemDetailsDto, description: 'DEPOSITS_DISABLED' })
   @ApiNotFoundResponse({ type: ProblemDetailsDto, description: 'ACCOUNT_NOT_FOUND' })
-  @ApiUnprocessableEntityResponse({
-    type: ProblemDetailsDto,
-    description: 'DAILY_DEPOSIT_LIMIT_EXCEEDED | ACCOUNT_NOT_ACTIVE',
-  })
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateDepositDto): Promise<DepositDto> {
-    return this.deposits.deposit(user.id, dto);
+  async create(
+    @CurrentUser() user: AuthUser,
+    @IdempotencyKey() idempotencyKey: string,
+    @Body() dto: CreateDepositDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<DepositDto> {
+    return sendIdempotent(res, await this.deposits.deposit(user.id, dto, idempotencyKey));
   }
 }

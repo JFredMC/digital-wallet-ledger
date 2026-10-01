@@ -16,8 +16,9 @@ export interface CreateUserInput {
 export class UsersService {
   constructor(@InjectRepository(User) private readonly users: Repository<User>) {}
 
-  findById(id: string): Promise<User | null> {
-    return this.users.findOneBy({ id });
+  /** Pass the transaction's manager when called inside one (see AccountsService.findRecipient). */
+  findById(id: string, manager?: EntityManager): Promise<User | null> {
+    return (manager ? manager.getRepository(User) : this.users).findOneBy({ id });
   }
 
   /** Loads a user including the (normally hidden) password hash. */

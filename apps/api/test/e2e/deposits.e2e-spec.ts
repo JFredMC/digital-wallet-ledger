@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { registerUser } from '../utils/auth';
-import { deposit, expectLedgerConsistent, getWallet } from '../utils/ledger';
+import { deposit, expectLedgerConsistent, getWallet, newIdempotencyKey } from '../utils/ledger';
 import { createTestApp, resetDatabase, type TestContext } from '../utils/test-app';
 
 // Default DEMO_DEPOSIT_DAILY_LIMIT_MINOR = 100_000_000 ($1.000.000,00 COP).
@@ -85,6 +85,7 @@ describe('Deposits (e2e)', () => {
     const res = await request(ctx.app.getHttpServer())
       .post('/api/v1/deposits')
       .set('Authorization', `Bearer ${user.accessToken}`)
+      .set('Idempotency-Key', newIdempotencyKey())
       .send({ accountId: wallet.id, amountMinor })
       .expect(400);
     expect(res.body.code).toBe('VALIDATION_FAILED');
@@ -129,5 +130,44 @@ describe('Deposits (e2e)', () => {
     const statuses = results.map((r) => r.status).sort();
     expect(statuses).toEqual([201, 201, 422, 422, 422]);
     expect((await getWallet(ctx.app, user.accessToken)).balanceMinor).toBe(amount * 2);
+  });
+
+  describe('idempotency', () => {
+    it('requires an Idempotency-Key header', async () => {
+      const user = await registerUser(ctx.app);
+      const wallet = await getWallet(ctx.app, user.accessToken);
+      const res = await request(ctx.app.getHttpServer())
+        .post('/api/v1/deposits')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ accountId: wallet.id, amountMinor: 1_000 })
+        .expect(400);
+      expect(res.body.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
+      expect(res.headers['content-type']).toMatch(/application\/problem\+json/);
+    });
+
+    it('replays a retried deposit instead of crediting twice', async () => {
+      const user = await registerUser(ctx.app);
+      const wallet = await getWallet(ctx.app, user.accessToken);
+      const key = newIdempotencyKey();
+
+      const first = await deposit(ctx.app, user.accessToken, wallet.id, 7_000, key).expect(201);
+      expect(first.headers['idempotent-replayed']).toBeUndefined();
+      const retry = await deposit(ctx.app, user.accessToken, wallet.id, 7_000, key).expect(201);
+
+      expect(retry.headers['idempotent-replayed']).toBe('true');
+      expect(retry.body).toEqual(first.body);
+      expect((await getWallet(ctx.app, user.accessToken)).balanceMinor).toBe(7_000);
+    });
+
+    it('rejects the same key with a different amount', async () => {
+      const user = await registerUser(ctx.app);
+      const wallet = await getWallet(ctx.app, user.accessToken);
+      const key = newIdempotencyKey();
+      await deposit(ctx.app, user.accessToken, wallet.id, 7_000, key).expect(201);
+
+      const res = await deposit(ctx.app, user.accessToken, wallet.id, 8_000, key).expect(422);
+      expect(res.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+      expect((await getWallet(ctx.app, user.accessToken)).balanceMinor).toBe(7_000);
+    });
   });
 });

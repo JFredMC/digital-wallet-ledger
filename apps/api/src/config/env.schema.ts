@@ -72,6 +72,26 @@ export const envSchema = databaseSchema.extend({
     .positive()
     .max(Number.MAX_SAFE_INTEGER)
     .default(100_000_000),
+
+  // --- Transfers ---
+  /** Max amount of a single transfer, in minor units. */
+  MAX_TRANSFER_MINOR: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(500_000_000),
+  /** Max total a wallet can send in any rolling 24 h window, in minor units. */
+  DAILY_TRANSFER_LIMIT_MINOR: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(2_000_000_000),
+
+  // --- Idempotency ---
+  /** How long a stored Idempotency-Key response can be replayed. */
+  IDEMPOTENCY_KEY_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(24),
 });
 
 export type Env = z.infer<typeof envSchema>;

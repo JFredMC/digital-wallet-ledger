@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import type { DataSource, EntityManager } from 'typeorm';
 import type { AccountsService } from '../accounts/accounts.service';
+import type { IdempotencyService } from '../idempotency/idempotency.service';
 import type { LedgerService } from '../ledger/ledger.service';
 import { DepositsService } from './deposits.service';
 
@@ -35,22 +36,37 @@ function setup(env: { enabled?: boolean; limit?: number; depositedLast24h?: bigi
   const dataSource = {
     transaction: (work: (m: EntityManager) => Promise<unknown>) => work(manager),
   };
+  const idempotency = {
+    execute: jest.fn(async (_m: EntityManager, _req: unknown, handler: () => Promise<unknown>) => ({
+      status: 201,
+      body: await handler(),
+      replayed: false,
+    })),
+  };
   const service = new DepositsService(
     dataSource as unknown as DataSource,
     accounts as unknown as AccountsService,
     ledger as unknown as LedgerService,
+    idempotency as unknown as IdempotencyService,
     config as unknown as ConfigService<never, true>,
   );
-  return { service, accounts, ledger };
+  return { service, accounts, ledger, idempotency };
 }
 
 describe('DepositsService', () => {
   const dto = { accountId: 'wallet', amountMinor: 500 };
 
   it('posts SYSTEM_FUNDING → wallet after locking both accounts', async () => {
-    const { service, accounts, ledger } = setup();
+    const { service, accounts, ledger, idempotency } = setup();
 
-    await expect(service.deposit('user-1', dto)).resolves.toEqual({
+    const result = await service.deposit('user-1', dto, 'key-12345678');
+    expect(idempotency.execute).toHaveBeenCalledWith(
+      manager,
+      { userId: 'user-1', key: 'key-12345678', scope: 'POST /deposits', payload: dto },
+      expect.any(Function),
+    );
+    expect(result).toMatchObject({ status: 201, replayed: false });
+    expect(result.body).toEqual({
       id: 'journal-1',
       accountId: 'wallet',
       amountMinor: 500,
@@ -76,12 +92,12 @@ describe('DepositsService', () => {
 
   it('allows deposits up to exactly the daily limit', async () => {
     const { service } = setup({ limit: 1000, depositedLast24h: 500n });
-    await expect(service.deposit('user-1', dto)).resolves.toBeDefined();
+    await expect(service.deposit('user-1', dto, 'key-12345678')).resolves.toBeDefined();
   });
 
   it('rejects deposits above the rolling daily limit and reports what is left', async () => {
     const { service, ledger } = setup({ limit: 1000, depositedLast24h: 700n });
-    await expect(service.deposit('user-1', dto)).rejects.toMatchObject({
+    await expect(service.deposit('user-1', dto, 'key-12345678')).rejects.toMatchObject({
       code: 'DAILY_DEPOSIT_LIMIT_EXCEEDED',
       extensions: { remainingMinor: 300 },
     });
@@ -90,7 +106,7 @@ describe('DepositsService', () => {
 
   it('is refused when demo deposits are disabled', async () => {
     const { service, accounts } = setup({ enabled: false });
-    await expect(service.deposit('user-1', dto)).rejects.toMatchObject({
+    await expect(service.deposit('user-1', dto, 'key-12345678')).rejects.toMatchObject({
       code: 'DEPOSITS_DISABLED',
     });
     expect(accounts.getOwned).not.toHaveBeenCalled();

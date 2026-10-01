@@ -10,6 +10,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DepositsModule } from './modules/deposits/deposits.module';
 import { HealthModule } from './modules/health/health.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
+import { TransactionsModule } from './modules/transactions/transactions.module';
+import { TransfersModule } from './modules/transfers/transfers.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -28,6 +30,8 @@ import { UsersModule } from './modules/users/users.module';
     AccountsModule,
     LedgerModule,
     DepositsModule,
+    TransfersModule,
+    TransactionsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
