@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { DomainError } from '../../common/errors/domain-error';
 import { User } from './entities/user.entity';
 
@@ -29,9 +29,11 @@ export class UsersService {
       .getOne();
   }
 
-  async create(input: CreateUserInput): Promise<User> {
+  /** Pass the caller's transaction manager to create the user atomically with other rows. */
+  async create(input: CreateUserInput, manager?: EntityManager): Promise<User> {
+    const repo = manager ? manager.getRepository(User) : this.users;
     try {
-      return await this.users.save(this.users.create(input));
+      return await repo.save(repo.create(input));
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
