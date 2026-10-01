@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { DemoBannerComponent } from '../../shared/ui/demo-banner.component';
 import { IconComponent, type IconName } from '../../shared/ui/icon.component';
 import { AuthService } from '../auth/auth.service';
 import { WalletStore } from '../state/wallet.store';
@@ -13,7 +14,7 @@ interface NavItem {
 /** Authenticated layout: top bar on desktop, bottom tab bar on mobile. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, DemoBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',

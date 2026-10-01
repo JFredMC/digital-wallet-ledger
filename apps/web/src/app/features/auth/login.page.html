@@ -9,6 +9,7 @@
 </section>
 
 <section class="panel">
+  <app-demo-banner class="form-width" [compact]="true" />
   <div class="card form-card">
     <div class="brand-mobile">
       <span class="brand-mark"><app-icon name="wallet" [size]="18" /></span>Billetera
@@ -18,6 +19,9 @@
 
     @if (sesion() === 'expirada') {
       <p class="alert alert-info" role="status">Tu sesión expiró. Ingresa de nuevo.</p>
+    }
+    @if (demoReset()) {
+      <p class="alert alert-info" role="status">Listo: la demo volvió a sus datos iniciales.</p>
     }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -50,5 +54,28 @@
     </form>
 
     <p class="small muted">¿No tienes cuenta? <a routerLink="/registro">Crea una gratis</a></p>
+
+    @if (demoMode; as demo) {
+      <section class="demo-hint small" data-testid="demo-hint" aria-labelledby="demo-hint-title">
+        <h2 id="demo-hint-title">Cuentas de prueba</h2>
+        <p class="muted">
+          Todas usan la contraseña <strong class="mono">{{ demo.credentials[0].password }}</strong
+          >.
+        </p>
+        <ul>
+          @for (account of demo.credentials; track account.email) {
+            <li>
+              <span
+                ><strong>{{ account.fullName }}</strong
+                ><br /><span class="mono muted">{{ account.email }}</span></span
+              >
+              <button type="button" class="btn btn-ghost small" (click)="useDemo(account)">
+                Usar
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
   </div>
 </section>

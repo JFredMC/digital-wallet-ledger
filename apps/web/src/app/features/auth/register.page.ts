@@ -3,6 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { type AppProblem, toProblem } from '../../core/http/problem';
+import { DemoBannerComponent } from '../../shared/ui/demo-banner.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { ProblemAlertComponent } from '../../shared/ui/problem-alert.component';
 
@@ -11,7 +12,13 @@ const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
 
 @Component({
   selector: 'app-register-page',
-  imports: [ReactiveFormsModule, RouterLink, ProblemAlertComponent, IconComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    ProblemAlertComponent,
+    IconComponent,
+    DemoBannerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './register.page.html',
   styleUrl: './auth-page.scss',

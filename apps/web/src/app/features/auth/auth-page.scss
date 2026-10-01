@@ -28,14 +28,51 @@
 }
 
 .panel {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
   padding: 2rem 1rem;
 }
 
-.form-card {
+.form-card,
+.form-width {
   width: 100%;
   max-width: 400px;
+}
+
+.demo-hint {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--c-primary);
+  border-radius: var(--radius-sm);
+  background: var(--c-primary-50);
+}
+
+.demo-hint h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.demo-hint ul {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.demo-hint li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.demo-hint li span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .brand-mobile {
