@@ -9,17 +9,59 @@
     <meta name="theme-color" content="#4f46e5" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Digital Wallet Ledger · Billetera con doble partida" />
-    <meta property="og:description" content="Billetera digital con contabilidad de doble partida, transferencias P2P e idempotencia." />
+    <meta
+      property="og:description"
+      content="Billetera digital con contabilidad de doble partida, transferencias P2P e idempotencia."
+    />
     <meta property="og:url" content="https://jfredmc.github.io/digital-wallet-ledger/" />
-    <meta property="og:image" content="https://jfredmc.github.io/digital-wallet-ledger/og-image.png" />
+    <meta
+      property="og:image"
+      content="https://jfredmc.github.io/digital-wallet-ledger/og-image.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="es_CO" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Digital Wallet Ledger · Billetera con doble partida" />
-    <meta name="twitter:description" content="Billetera digital con contabilidad de doble partida, transferencias P2P e idempotencia." />
-    <meta name="twitter:image" content="https://jfredmc.github.io/digital-wallet-ledger/og-image.png" />
+    <meta
+      name="twitter:description"
+      content="Billetera digital con contabilidad de doble partida, transferencias P2P e idempotencia."
+    />
+    <meta
+      name="twitter:image"
+      content="https://jfredmc.github.io/digital-wallet-ledger/og-image.png"
+    />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Aplica el tema antes del primer pintado (sin destello).
+      (function () {
+        var t = null;
+        try {
+          t = localStorage.getItem('theme');
+        } catch (e) {}
+        if (t !== 'light' && t !== 'dark') {
+          t =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        }
+        var r = document.documentElement;
+        r.setAttribute('data-theme', t);
+        r.style.colorScheme = t;
+        if (t === 'dark') {
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', '#0b1120');
+        }
+      })();
+    </script>
+    <style>
+      /* Fondo oscuro desde el primer pintado (el CSS completo carga diferido). */
+      :root[data-theme='dark'] {
+        --c-bg: #0b1120;
+        --c-text: #e5e7eb;
+      }
+    </style>
   </head>
   <body>
     <app-root></app-root>
